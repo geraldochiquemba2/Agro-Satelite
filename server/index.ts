@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
+import https from "https";
 
 const app = express();
 const httpServer = createServer(app);
@@ -98,6 +99,19 @@ app.use((req, res, next) => {
     },
     () => {
       log(`serving on port ${port}`);
+
+      // Keep-alive logic for Render Free Tier
+      const externalUrl = process.env.RENDER_EXTERNAL_URL;
+      if (externalUrl) {
+        log(`Keep-alive active for: ${externalUrl}`);
+        setInterval(() => {
+          https.get(externalUrl, (res) => {
+            log(`Keep-alive ping sent to ${externalUrl} - Status: ${res.statusCode}`);
+          }).on('error', (err) => {
+            log(`Keep-alive ping failed: ${err.message}`, "error");
+          });
+        }, 10 * 60 * 1000); // 10 minutes
+      }
     },
   );
 })();
