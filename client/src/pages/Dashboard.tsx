@@ -2,15 +2,17 @@ import { useState } from "react";
 import { 
   Droplets, Map, Activity, CloudRain, 
   Settings, User, Bell, ChevronRight, Menu, MapPin, 
-  ThermometerSun, Sprout, CheckCircle2, AlertTriangle, TrendingUp, Sun, Wind
+  ThermometerSun, Sprout, CheckCircle2, AlertTriangle, TrendingUp, Sun, Wind,
+  Cloud, CloudLightning, Waves, Layers
 } from "lucide-react";
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Assets generated
 import satelliteFarm from "@/assets/images/satellite-farm.png";
@@ -26,8 +28,17 @@ const waterForecastData = [
   { name: 'Dom', need: 42, evaporated: 18 },
 ];
 
+const healthHistoryData = [
+  { name: 'Sem 1', ndvi: 0.65 },
+  { name: 'Sem 2', ndvi: 0.72 },
+  { name: 'Sem 3', ndvi: 0.78 },
+  { name: 'Sem 4', ndvi: 0.82 },
+  { name: 'Sem 5', ndvi: 0.88 },
+];
+
 export default function Dashboard() {
   const [isSidebarOpen, setSidebarOpen] = useState(true);
+  const [activeTab, setActiveTab] = useState("overview");
 
   return (
     <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950">
@@ -49,11 +60,11 @@ export default function Dashboard() {
         </div>
 
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-          <NavItem icon={<Map className="w-5 h-5" />} label="Visão Geral" active isOpen={isSidebarOpen} />
-          <NavItem icon={<Droplets className="w-5 h-5" />} label="Irrigação" isOpen={isSidebarOpen} />
-          <NavItem icon={<Activity className="w-5 h-5" />} label="Saúde da Cultura" isOpen={isSidebarOpen} />
-          <NavItem icon={<CloudRain className="w-5 h-5" />} label="Clima" isOpen={isSidebarOpen} />
-          <NavItem icon={<MapPin className="w-5 h-5" />} label="Talhões" isOpen={isSidebarOpen} />
+          <NavItem icon={<Map className="w-5 h-5" />} label="Visão Geral" active={activeTab === "overview"} onClick={() => setActiveTab("overview")} isOpen={isSidebarOpen} />
+          <NavItem icon={<Droplets className="w-5 h-5" />} label="Irrigação" active={activeTab === "irrigation"} onClick={() => setActiveTab("irrigation")} isOpen={isSidebarOpen} />
+          <NavItem icon={<Activity className="w-5 h-5" />} label="Saúde da Cultura" active={activeTab === "health"} onClick={() => setActiveTab("health")} isOpen={isSidebarOpen} />
+          <NavItem icon={<CloudRain className="w-5 h-5" />} label="Clima" active={activeTab === "climate"} onClick={() => setActiveTab("climate")} isOpen={isSidebarOpen} />
+          <NavItem icon={<MapPin className="w-5 h-5" />} label="Talhões" active={activeTab === "plots"} onClick={() => setActiveTab("plots")} isOpen={isSidebarOpen} />
         </nav>
 
         <div className="p-4 border-t border-slate-200 dark:border-slate-800">
@@ -70,9 +81,6 @@ export default function Dashboard() {
             <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(!isSidebarOpen)} className="hidden md:flex">
               <Menu className="w-5 h-5 text-slate-600 dark:text-slate-300" />
             </Button>
-            <Button variant="ghost" size="icon" className="md:hidden">
-              <Menu className="w-5 h-5 text-slate-600 dark:text-slate-300" />
-            </Button>
             <h1 className="font-heading font-semibold text-lg text-slate-800 dark:text-white hidden sm:block">Fazenda Vale Verde</h1>
           </div>
 
@@ -81,10 +89,6 @@ export default function Dashboard() {
               <span className="flex items-center gap-1"><Sun className="w-4 h-4 text-amber-500"/> 28°C</span>
               <span className="flex items-center gap-1"><Wind className="w-4 h-4 text-blue-400"/> 12 km/h</span>
             </div>
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell className="w-5 h-5 text-slate-600 dark:text-slate-300" />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
-            </Button>
             <Avatar className="h-8 w-8 border border-slate-200">
               <AvatarImage src="https://i.pravatar.cc/150?u=a042581f4e29026704d" alt="Agricultor" />
               <AvatarFallback>AG</AvatarFallback>
@@ -96,222 +100,220 @@ export default function Dashboard() {
         <div className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
           <div className="max-w-7xl mx-auto space-y-6">
             
-            {/* Header Section */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <div>
-                <h2 className="text-2xl font-heading font-bold text-slate-900 dark:text-white">Análise em Tempo Real</h2>
-                <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Dados atualizados via satélite Copernicus há 12 minutos.</p>
-              </div>
-              <div className="flex items-center gap-2 bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 px-3 py-1.5 rounded-full text-sm font-medium border border-green-200 dark:border-green-800/50">
-                <CheckCircle2 className="w-4 h-4" />
-                <span>Satélite Conectado</span>
-              </div>
-            </div>
-
-            {/* Top Grid: Core Recommendation & Score */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              
-              {/* CORE: Irrigation Recommendation */}
-              <Card className="lg:col-span-2 bg-gradient-to-br from-blue-500 to-blue-700 text-white border-0 shadow-lg relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-                <CardHeader className="pb-2 relative z-10">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle className="text-blue-50 font-medium text-lg flex items-center gap-2">
-                        <Droplets className="w-5 h-5" /> Recomendação de Irrigação
-                      </CardTitle>
-                      <CardDescription className="text-blue-100 mt-1">Baseado na evaporação, solo e previsão de chuva</CardDescription>
-                    </div>
-                    <Badge variant="outline" className="bg-white/20 hover:bg-white/30 text-white border-0 backdrop-blur-md font-medium">
-                      Talhão Principal (Soja)
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="relative z-10 pt-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                    <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/10">
-                      <div className="text-blue-100 text-sm font-medium mb-1">Volume Ideal</div>
-                      <div className="text-3xl font-heading font-bold">12 <span className="text-lg font-normal text-blue-200">mm</span></div>
-                      <div className="text-xs text-blue-200 mt-2">Equivale a 120m³/ha</div>
-                    </div>
-                    <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/10">
-                      <div className="text-blue-100 text-sm font-medium mb-1">Melhor Horário</div>
-                      <div className="text-3xl font-heading font-bold">22:00 <span className="text-lg font-normal text-blue-200">h</span></div>
-                      <div className="text-xs text-blue-200 mt-2">Menor perda por evaporação</div>
-                    </div>
-                    <div className="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/10">
-                      <div className="text-blue-100 text-sm font-medium mb-1">Próximos Dias</div>
-                      <div className="text-xl font-heading font-bold mt-2">Hoje e Quinta</div>
-                      <div className="text-xs text-blue-200 mt-2">Pular quarta (chuva prevista)</div>
-                    </div>
-                  </div>
-                </CardContent>
-                <CardFooter className="relative z-10 pt-4 border-t border-white/10 mt-4">
-                  <Button className="w-full sm:w-auto bg-white text-blue-700 hover:bg-blue-50 font-semibold shadow-sm">
-                    Aplicar Recomendação
-                  </Button>
-                  <span className="text-xs text-blue-200 ml-4 hidden sm:block">Economia estimada: 18% em relação à média histórica.</span>
-                </CardFooter>
-              </Card>
-
-              {/* Health Score */}
-              <Card className="glass-panel border-slate-200/60 dark:border-slate-800">
-                <CardHeader className="pb-2 text-center">
-                  <CardTitle className="text-slate-600 dark:text-slate-400 font-medium text-sm">Score Agrícola (ISP)</CardTitle>
-                </CardHeader>
-                <CardContent className="flex flex-col items-center justify-center pt-2">
-                  <div className="relative w-40 h-40 flex items-center justify-center">
-                    <svg className="w-full h-full transform -rotate-90 absolute inset-0" viewBox="0 0 100 100">
-                      <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="8" className="text-slate-100 dark:text-slate-800" />
-                      <circle 
-                        cx="50" cy="50" r="45" 
-                        fill="none" 
-                        stroke="currentColor" 
-                        strokeWidth="8" 
-                        strokeLinecap="round"
-                        className="text-primary"
-                        strokeDasharray={`${88 * 2.83} 283`} // 88%
-                      />
-                    </svg>
-                    <div className="text-center flex flex-col items-center">
-                      <span className="text-5xl font-heading font-bold text-slate-800 dark:text-white tracking-tighter">88</span>
-                      <span className="text-sm text-slate-500 font-medium">/ 100</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 mt-6 text-sm font-medium text-primary bg-primary/10 px-3 py-1.5 rounded-full">
-                    <TrendingUp className="w-4 h-4" />
-                    <span>+3% desde a última semana</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4 w-full mt-6 pt-6 border-t border-slate-100 dark:border-slate-800">
-                    <div className="text-center">
-                      <div className="text-xs text-slate-500 mb-1">Vegetação</div>
-                      <div className="text-slate-800 dark:text-slate-200 font-semibold">Excelente</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-xs text-slate-500 mb-1">Estresse Hídrico</div>
-                      <div className="text-slate-800 dark:text-slate-200 font-semibold">Baixo</div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Maps and Analysis Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              
-              {/* Satellite Vegetation Health */}
-              <Card className="glass-panel overflow-hidden border-slate-200/60 dark:border-slate-800">
-                <CardHeader className="bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm border-b border-slate-100 dark:border-slate-800 z-10">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <CardTitle className="flex items-center gap-2">
-                        <Activity className="w-5 h-5 text-primary" /> Saúde da Plantação
-                      </CardTitle>
-                      <CardDescription>NDVI via Copernicus (Tempo quase real)</CardDescription>
-                    </div>
-                    <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400">
-                      Livre de anomalias
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-0 relative h-[300px]">
-                  <img src={satelliteFarm} alt="Mapa da fazenda via satélite" className="w-full h-full object-cover object-center" />
-                  {/* Overlay UI elements on the map */}
-                  <div className="absolute bottom-4 left-4 right-4 flex justify-between items-end">
-                    <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-lg p-3 shadow-lg border border-white/20 text-sm">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                        <span className="font-medium text-slate-700 dark:text-slate-300">Alta Vitalidade</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full bg-amber-500"></div>
-                        <span className="font-medium text-slate-700 dark:text-slate-300">Atenção Leve</span>
-                      </div>
-                    </div>
-                    <Button size="sm" variant="secondary" className="bg-white/90 hover:bg-white dark:bg-slate-800/90 backdrop-blur-md shadow-lg">
-                      Ampliar <ChevronRight className="w-4 h-4 ml-1" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Soil Analysis */}
-              <Card className="glass-panel overflow-hidden border-slate-200/60 dark:border-slate-800">
-                <CardHeader className="bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm border-b border-slate-100 dark:border-slate-800 z-10">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <CardTitle className="flex items-center gap-2">
-                        <ThermometerSun className="w-5 h-5 text-orange-500" /> Análise de Solo
-                      </CardTitle>
-                      <CardDescription>Umidade e Temperatura (Sem sensores físicos)</CardDescription>
-                    </div>
-                    <Badge variant="outline" className="text-orange-600 border-orange-200 bg-orange-50 dark:border-orange-900/50 dark:text-orange-400 dark:bg-orange-950/30">
-                      24.5°C Média
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-0 relative h-[300px]">
-                  <img src={soilHeatmap} alt="Heatmap de umidade do solo" className="w-full h-full object-cover object-center grayscale-[20%]" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent"></div>
-                  
-                  <div className="absolute bottom-4 left-4 right-4">
-                    <div className="bg-slate-900/80 backdrop-blur-md border border-slate-700/50 rounded-xl p-4 text-white">
-                      <div className="flex justify-between items-center mb-4">
-                        <span className="text-sm font-medium text-slate-300">Nível de Umidade do Solo</span>
-                        <span className="font-bold text-blue-400">42%</span>
-                      </div>
-                      <Progress value={42} className="h-2 bg-slate-700"  />
-                      <div className="flex justify-between text-xs text-slate-400 mt-2">
-                        <span>Crítico (0-20%)</span>
-                        <span>Ideal (40-60%)</span>
-                        <span>Saturado (&gt;80%)</span>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Bottom Section: Forecast Chart */}
-            <Card className="glass-panel border-slate-200/60 dark:border-slate-800">
-              <CardHeader>
-                <div className="flex justify-between items-center">
+            {activeTab === "overview" && (
+              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div>
-                    <CardTitle className="flex items-center gap-2">
-                      <CloudRain className="w-5 h-5 text-blue-500" /> Previsão de Necessidade Hídrica
-                    </CardTitle>
-                    <CardDescription>Evapotranspiração estimada vs Necessidade de reposição (7 dias)</CardDescription>
+                    <h2 className="text-2xl font-heading font-bold text-slate-900 dark:text-white">Resumo da Fazenda</h2>
+                    <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Status global monitorado via satélite.</p>
                   </div>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[250px] w-full mt-4">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={waterForecastData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                      <defs>
-                        <linearGradient id="colorNeed" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
-                          <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
-                        </linearGradient>
-                        <linearGradient id="colorEvap" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.3}/>
-                          <stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(150, 150, 150, 0.2)" />
-                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dy={10} />
-                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
-                      <Tooltip 
-                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)' }}
-                        cursor={{ stroke: 'rgba(150, 150, 150, 0.2)', strokeWidth: 2 }}
-                      />
-                      <Area type="monotone" name="Necessidade (mm)" dataKey="need" stroke="hsl(var(--primary))" strokeWidth={3} fillOpacity={1} fill="url(#colorNeed)" />
-                      <Area type="monotone" name="Evaporação (mm)" dataKey="evaporated" stroke="#f59e0b" strokeWidth={3} fillOpacity={1} fill="url(#colorEvap)" />
-                    </AreaChart>
-                  </ResponsiveContainer>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <Card className="lg:col-span-2 bg-gradient-to-br from-blue-500 to-blue-700 text-white border-0 shadow-lg relative overflow-hidden">
+                    <CardHeader className="relative z-10">
+                      <CardTitle className="text-lg flex items-center gap-2">Recomendação de Irrigação</CardTitle>
+                    </CardHeader>
+                    <CardContent className="relative z-10 grid grid-cols-3 gap-4">
+                      <div className="bg-white/10 p-4 rounded-xl">
+                        <div className="text-xs text-blue-100">Volume</div>
+                        <div className="text-2xl font-bold">12mm</div>
+                      </div>
+                      <div className="bg-white/10 p-4 rounded-xl">
+                        <div className="text-xs text-blue-100">Janela</div>
+                        <div className="text-2xl font-bold">22:00h</div>
+                      </div>
+                      <div className="bg-white/10 p-4 rounded-xl">
+                        <div className="text-xs text-blue-100">Status</div>
+                        <div className="text-2xl font-bold">Pendente</div>
+                      </div>
+                    </CardContent>
+                    <CardFooter className="relative z-10">
+                      <Button onClick={() => setActiveTab("irrigation")} variant="secondary" className="w-full">Detalhes da Irrigação</Button>
+                    </CardFooter>
+                  </Card>
+
+                  <Card className="glass-panel text-center flex flex-col items-center justify-center p-6">
+                    <div className="text-sm text-slate-500 mb-2">Score de Saúde</div>
+                    <div className="text-6xl font-bold text-primary">88</div>
+                    <Badge className="mt-4 bg-green-100 text-green-700">Excelente</Badge>
+                  </Card>
                 </div>
-              </CardContent>
-            </Card>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                   <Card className="glass-panel h-64 overflow-hidden relative cursor-pointer group" onClick={() => setActiveTab("plots")}>
+                      <img src={satelliteFarm} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent p-4 flex flex-col justify-end">
+                        <div className="text-white font-bold flex items-center gap-2"><Layers className="w-4 h-4"/> Mapa de Talhões</div>
+                      </div>
+                   </Card>
+                   <Card className="glass-panel h-64 overflow-hidden relative cursor-pointer group" onClick={() => setActiveTab("health")}>
+                      <img src={soilHeatmap} className="w-full h-full object-cover transition-transform group-hover:scale-105 grayscale" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent p-4 flex flex-col justify-end">
+                        <div className="text-white font-bold flex items-center gap-2"><Activity className="w-4 h-4"/> Saúde por NDVI</div>
+                      </div>
+                   </Card>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "irrigation" && (
+              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                <h2 className="text-2xl font-heading font-bold text-slate-900 dark:text-white">Gerenciamento de Irrigação</h2>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <Card className="glass-panel p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <Waves className="w-6 h-6 text-blue-500" />
+                      <span className="font-bold">Ciclo Atual</span>
+                    </div>
+                    <div className="text-3xl font-bold mb-1">42%</div>
+                    <Progress value={42} className="h-2 mb-2" />
+                    <p className="text-xs text-slate-500">Próxima rega automática em 4h</p>
+                  </Card>
+                  <Card className="glass-panel p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <CloudRain className="w-6 h-6 text-blue-400" />
+                      <span className="font-bold">Economia de Água</span>
+                    </div>
+                    <div className="text-3xl font-bold mb-1">1.2k m³</div>
+                    <p className="text-xs text-green-600 font-medium">↑ 12% vs mês anterior</p>
+                  </Card>
+                  <Card className="glass-panel p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <ThermometerSun className="w-6 h-6 text-orange-400" />
+                      <span className="font-bold">Umidade Solo</span>
+                    </div>
+                    <div className="text-3xl font-bold mb-1">32%</div>
+                    <p className="text-xs text-amber-600 font-medium">Limiar de estresse: 25%</p>
+                  </Card>
+                </div>
+                <Card className="glass-panel p-6">
+                  <CardTitle className="mb-4 text-lg">Histórico de Consumo (7 dias)</CardTitle>
+                  <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={waterForecastData}>
+                        <XAxis dataKey="name" axisLine={false} tickLine={false} />
+                        <YAxis hide />
+                        <Tooltip />
+                        <Bar dataKey="need" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </Card>
+              </div>
+            )}
+
+            {activeTab === "health" && (
+              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                <h2 className="text-2xl font-heading font-bold text-slate-900 dark:text-white">Saúde da Cultura (NDVI)</h2>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <Card className="glass-panel overflow-hidden border-slate-200">
+                    <CardHeader>
+                      <CardTitle className="text-sm">Mapa de Vigor Vegetativo</CardTitle>
+                    </CardHeader>
+                    <div className="h-80 relative">
+                       <img src={satelliteFarm} className="w-full h-full object-cover" />
+                       <div className="absolute top-4 right-4 bg-black/80 text-white p-2 rounded text-[10px] space-y-1">
+                          <div className="flex items-center gap-2"><div className="w-2 h-2 bg-green-500 rounded-full"></div> Saudável (0.8+)</div>
+                          <div className="flex items-center gap-2"><div className="w-2 h-2 bg-yellow-500 rounded-full"></div> Atenção (0.5-0.7)</div>
+                          <div className="flex items-center gap-2"><div className="w-2 h-2 bg-red-500 rounded-full"></div> Alerta (&lt;0.4)</div>
+                       </div>
+                    </div>
+                  </Card>
+                  <Card className="glass-panel p-6">
+                    <CardTitle className="text-sm mb-6">Tendência de Crescimento</CardTitle>
+                    <div className="h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={healthHistoryData}>
+                          <XAxis dataKey="name" />
+                          <YAxis domain={[0, 1]} />
+                          <Tooltip />
+                          <Area type="monotone" dataKey="ndvi" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.1} />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex items-start gap-3">
+                      <AlertTriangle className="w-5 h-5 text-blue-600 mt-0.5" />
+                      <div>
+                        <div className="font-bold text-sm text-blue-900 dark:text-blue-300">Insights de IA</div>
+                        <p className="text-xs text-blue-700 dark:text-blue-400">O crescimento acelerado na última semana sugere necessidade de aumento na suplementação de nitrogênio no Talhão 02.</p>
+                      </div>
+                    </div>
+                  </Card>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "climate" && (
+              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                <h2 className="text-2xl font-heading font-bold text-slate-900 dark:text-white">Central Climática</h2>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="p-6 bg-amber-500 text-white rounded-2xl flex flex-col items-center justify-center">
+                    <Sun className="w-10 h-10 mb-2" />
+                    <div className="text-3xl font-bold">28°C</div>
+                    <div className="text-xs opacity-80">Céu Limpo</div>
+                  </div>
+                  <div className="p-6 bg-blue-500 text-white rounded-2xl flex flex-col items-center justify-center">
+                    <CloudRain className="w-10 h-10 mb-2" />
+                    <div className="text-3xl font-bold">12%</div>
+                    <div className="text-xs opacity-80">Prob. Chuva</div>
+                  </div>
+                  <div className="p-6 bg-slate-800 text-white rounded-2xl flex flex-col items-center justify-center">
+                    <Wind className="w-10 h-10 mb-2" />
+                    <div className="text-3xl font-bold">14km/h</div>
+                    <div className="text-xs opacity-80">Vento SE</div>
+                  </div>
+                  <div className="p-6 bg-indigo-600 text-white rounded-2xl flex flex-col items-center justify-center">
+                    <CloudLightning className="w-10 h-10 mb-2" />
+                    <div className="text-3xl font-bold">Baixo</div>
+                    <div className="text-xs opacity-80">Risco Raios</div>
+                  </div>
+                </div>
+                <Card className="glass-panel p-6">
+                  <CardTitle className="mb-6">Previsão Semanal</CardTitle>
+                  <div className="grid grid-cols-7 gap-2">
+                    {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'].map((day, i) => (
+                      <div key={day} className="text-center p-3 rounded-xl border border-slate-100 dark:border-slate-800">
+                        <div className="text-xs text-slate-500 mb-2">{day}</div>
+                        {i === 2 ? <CloudRain className="w-6 h-6 mx-auto text-blue-400" /> : <Sun className="w-6 h-6 mx-auto text-amber-400" />}
+                        <div className="mt-2 font-bold text-sm">{24 + i}°</div>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              </div>
+            )}
+
+            {activeTab === "plots" && (
+              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                <h2 className="text-2xl font-heading font-bold text-slate-900 dark:text-white">Gerenciamento de Talhões</h2>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {[1, 2, 3].map(i => (
+                    <Card key={i} className="glass-panel overflow-hidden">
+                      <div className="h-32 bg-slate-200 relative">
+                        <img src={satelliteFarm} className="w-full h-full object-cover opacity-50" />
+                        <div className="absolute inset-0 flex items-center justify-center font-bold text-slate-800 text-xl">Talhão 0{i}</div>
+                      </div>
+                      <CardContent className="p-4 space-y-3">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-500">Cultura</span>
+                          <span className="font-medium">{i === 1 ? 'Soja' : i === 2 ? 'Milho' : 'Algodão'}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-500">Área</span>
+                          <span className="font-medium">{120 * i} ha</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-500">Saúde</span>
+                          <Badge variant="outline" className="text-primary border-primary/20 bg-primary/5">{80 + i * 2}%</Badge>
+                        </div>
+                        <Button variant="outline" size="sm" className="w-full mt-2">Ver Detalhes</Button>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
 
           </div>
         </div>
@@ -321,11 +323,11 @@ export default function Dashboard() {
 }
 
 // Helper Component for Sidebar
-function NavItem({ icon, label, active = false, isOpen }: { icon: React.ReactNode, label: string, active?: boolean, isOpen: boolean }) {
+function NavItem({ icon, label, active = false, onClick, isOpen }: { icon: React.ReactNode, label: string, active?: boolean, onClick?: () => void, isOpen: boolean }) {
   return (
-    <a 
-      href="#" 
-      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors group
+    <button 
+      onClick={onClick}
+      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors group cursor-pointer
         ${active 
           ? 'bg-primary/10 text-primary font-medium' 
           : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-200'
@@ -335,6 +337,6 @@ function NavItem({ icon, label, active = false, isOpen }: { icon: React.ReactNod
         {icon}
       </div>
       {isOpen && <span>{label}</span>}
-    </a>
+    </button>
   );
 }
