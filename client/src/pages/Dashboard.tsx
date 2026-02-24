@@ -717,8 +717,8 @@ export default function Dashboard() {
                         </Button>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="bg-white/10 p-6 rounded-2xl flex flex-col justify-center items-center text-center">
+                      <div className="flex flex-col lg:flex-row gap-6">
+                        <div className="lg:w-1/4 bg-white/10 p-6 rounded-2xl flex flex-col justify-center items-center text-center">
                           <div className="text-sm opacity-60 mb-2 uppercase font-bold tracking-widest">Condição Atual</div>
                           <div className="flex flex-col items-center">
                             <div className="relative mb-2">
@@ -747,74 +747,30 @@ export default function Dashboard() {
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                          <div className="p-3 bg-white/5 rounded-xl border border-white/10 group hover:bg-white/10 transition-all">
-                            <div className="flex items-center gap-2 mb-1">
-                              <Sunrise className="w-3 h-3 text-amber-400" />
-                              <div className="text-[10px] opacity-60 uppercase">Nascer do Sol</div>
+                        <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-3">
+                          {[
+                            { icon: <Sunrise className="w-3 h-3 text-amber-400" />, label: "Nascer do Sol", value: selectedProvince.weather.sunrise || "--:--" },
+                            { icon: <Sun className="w-3 h-3 text-yellow-400" />, label: "Índice UV", value: selectedProvince.weather.uvIndex },
+                            { icon: <Wind className="w-3 h-3 text-slate-400" />, label: "Vento", value: `${selectedProvince.weather.windSpeed} km/h` },
+                            { icon: <ThermometerSun className="w-3 h-3 text-orange-400" />, label: "Sensação", value: `${selectedProvince.weather.apparentTemp?.toFixed(1) || selectedProvince.weather.temp}°` },
+                            { icon: <CloudRain className="w-3 h-3 text-blue-400" />, label: "Precipitação", value: `${selectedProvince.weather.rain} mm` },
+                            { icon: <Droplets className="w-3 h-3 text-cyan-400" />, label: "Humidade", value: `${selectedProvince.weather.humidity}%` },
+                            { icon: <Eye className="w-3 h-3 text-indigo-400" />, label: "Visibilidade", value: `${selectedProvince.weather.visibility?.toFixed(1) || "10.0"} km` },
+                            { icon: <Gauge className="w-3 h-3 text-emerald-400" />, label: "Pressão", value: `${selectedProvince.weather.pressure?.toFixed(0) || "1013"} hPa` },
+                          ].map((item, idx) => (
+                            <div key={idx} className="p-4 bg-white/5 rounded-xl border border-white/10 group hover:bg-white/10 transition-all flex flex-col justify-between">
+                              <div className="flex items-center gap-2 mb-2">
+                                {item.icon}
+                                <div className="text-[10px] opacity-60 uppercase font-bold tracking-tight">{item.label}</div>
+                              </div>
+                              <div className="text-xl font-bold whitespace-nowrap">{item.value}</div>
                             </div>
-                            <div className="text-lg font-bold">{selectedProvince.weather.sunrise || "--:--"}</div>
-                          </div>
-
-                          <div className="p-3 bg-white/5 rounded-xl border border-white/10 group hover:bg-white/10 transition-all">
-                            <div className="flex items-center gap-2 mb-1">
-                              <Sun className="w-3 h-3 text-yellow-400" />
-                              <div className="text-[10px] opacity-60 uppercase">Índice UV</div>
-                            </div>
-                            <div className="text-lg font-bold">{selectedProvince.weather.uvIndex}</div>
-                          </div>
-
-                          <div className="p-3 bg-white/5 rounded-xl border border-white/10 group hover:bg-white/10 transition-all">
-                            <div className="flex items-center gap-2 mb-1">
-                              <Wind className="w-3 h-3 text-slate-400" />
-                              <div className="text-[10px] opacity-60 uppercase">Vento</div>
-                            </div>
-                            <div className="text-lg font-bold">{selectedProvince.weather.windSpeed} <span className="text-[10px] opacity-50">km/h</span></div>
-                          </div>
-
-                          <div className="p-3 bg-white/5 rounded-xl border border-white/10 group hover:bg-white/10 transition-all">
-                            <div className="flex items-center gap-2 mb-1">
-                              <ThermometerSun className="w-3 h-3 text-orange-400" />
-                              <div className="text-[10px] opacity-60 uppercase">Sensação</div>
-                            </div>
-                            <div className="text-lg font-bold">{selectedProvince.weather.apparentTemp?.toFixed(1) || selectedProvince.weather.temp}°</div>
-                          </div>
-
-                          <div className="p-3 bg-white/5 rounded-xl border border-white/10 group hover:bg-white/10 transition-all">
-                            <div className="flex items-center gap-2 mb-1">
-                              <CloudRain className="w-3 h-3 text-blue-400" />
-                              <div className="text-[10px] opacity-60 uppercase">Precipitação</div>
-                            </div>
-                            <div className="text-lg font-bold">{selectedProvince.weather.rain} <span className="text-[10px] opacity-50">mm</span></div>
-                          </div>
-
-                          <div className="p-3 bg-white/5 rounded-xl border border-white/10 group hover:bg-white/10 transition-all">
-                            <div className="flex items-center gap-2 mb-1">
-                              <Droplets className="w-3 h-3 text-cyan-400" />
-                              <div className="text-[10px] opacity-60 uppercase">Humidade</div>
-                            </div>
-                            <div className="text-lg font-bold">{selectedProvince.weather.humidity}%</div>
-                          </div>
-
-                          <div className="p-3 bg-white/5 rounded-xl border border-white/10 group hover:bg-white/10 transition-all">
-                            <div className="flex items-center gap-2 mb-1">
-                              <Eye className="w-3 h-3 text-indigo-400" />
-                              <div className="text-[10px] opacity-60 uppercase">Visibilidade</div>
-                            </div>
-                            <div className="text-lg font-bold">{selectedProvince.weather.visibility?.toFixed(1) || "10.0"} <span className="text-[10px] opacity-50">km</span></div>
-                          </div>
-
-                          <div className="p-3 bg-white/5 rounded-xl border border-white/10 group hover:bg-white/10 transition-all">
-                            <div className="flex items-center gap-2 mb-1">
-                              <Gauge className="w-3 h-3 text-emerald-400" />
-                              <div className="text-[10px] opacity-60 uppercase">Pressão</div>
-                            </div>
-                            <div className="text-lg font-bold">{selectedProvince.weather.pressure?.toFixed(0) || "1013"} <span className="text-[10px] opacity-50">hPa</span></div>
-                          </div>
+                          ))}
                         </div>
+                      </div>
 
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-                          <div className="bg-white/5 p-6 rounded-2xl border border-white/10">
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
+                          <div className="lg:col-span-4 bg-white/5 p-6 rounded-2xl border border-white/10 flex flex-col justify-between">
                             <h4 className="font-bold mb-4 text-sm flex items-center gap-2">
                               <Droplets className="w-4 h-4" /> Recomendação Hídrica
                             </h4>
@@ -828,7 +784,7 @@ export default function Dashboard() {
                             </div>
                           </div>
 
-                          <div className="bg-white/5 rounded-2xl border border-white/10 overflow-hidden min-h-[220px] relative h-full">
+                          <div className="lg:col-span-8 bg-white/5 rounded-2xl border border-white/10 overflow-hidden relative min-h-[350px]">
                             <MapContainer
                               center={[Number(selectedProvince.lat), Number(selectedProvince.lng)]}
                               zoom={9}
