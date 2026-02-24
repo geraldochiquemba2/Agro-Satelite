@@ -6,6 +6,12 @@ export interface WeatherData {
     rain: number;
     uvIndex: number;
     description: string;
+    apparentTemp?: number;
+    pressure?: number;
+    visibility?: number;
+    sunrise?: string;
+    isDay?: boolean;
+    time?: string;
     isSimulated?: boolean;
 }
 
@@ -47,11 +53,12 @@ export async function getPlotWeather(lat: string, lng: string): Promise<WeatherD
 
 async function fetchOpenMeteo(lat: string, lng: string): Promise<WeatherData> {
     try {
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,precipitation,uv_index,weather_code&timezone=auto`;
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,precipitation,uv_index,weather_code,apparent_temperature,pressure_msl,visibility,is_day&daily=sunrise&timezone=auto`;
         const res = await fetch(url);
         if (!res.ok) throw new Error("Erro Open-Meteo");
         const data = await res.json();
         const current = data.current;
+        const daily = data.daily;
         const code = current.weather_code;
 
         // Mapeamento WMO Weather Codes para Português
@@ -72,6 +79,12 @@ async function fetchOpenMeteo(lat: string, lng: string): Promise<WeatherData> {
             windSpeed: current.wind_speed_10m,
             rain: current.precipitation,
             uvIndex: current.uv_index,
+            apparentTemp: current.apparent_temperature,
+            pressure: current.pressure_msl,
+            visibility: current.visibility / 1000, // Convert to km
+            isDay: current.is_day === 1,
+            time: new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }),
+            sunrise: daily.sunrise?.[0] ? new Date(daily.sunrise[0]).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }) : "--:--",
             description: weatherMap[code] || (current.precipitation > 0 ? "Chuva" : "Limpo"),
             isSimulated: false
         };

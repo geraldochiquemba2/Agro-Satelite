@@ -9,7 +9,7 @@ import {
   Droplets, Map, Activity, CloudRain,
   Settings, User, Bell, ChevronRight, Menu, MapPin,
   Cloud, CloudLightning, Waves, Layers, Plus, Trash2, X, MessageSquare, Send, RefreshCw, CloudSun, Loader2,
-  Sprout, Sun, Wind, ThermometerSun, AlertTriangle
+  Sprout, Sun, Wind, ThermometerSun, AlertTriangle, Sunrise, Eye, Gauge, Moon
 } from "lucide-react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -112,6 +112,53 @@ function MapEvents({ onLocationSelect, onMapChange }: { onLocationSelect: (lat: 
   return null;
 }
 
+const WeatherLayerControl = ({
+  activeLayer,
+  onLayerSelect,
+  layers
+}: {
+  activeLayer: string | null,
+  onLayerSelect: (id: string | null) => void,
+  layers: any[]
+}) => {
+  return (
+    <div className="absolute top-4 right-4 z-[1000] flex flex-col gap-2">
+      <div className="bg-slate-900/90 backdrop-blur-md border border-slate-700 rounded-xl p-2 shadow-2xl">
+        <div className="text-[10px] font-bold text-slate-500 uppercase px-2 mb-1 tracking-wider">Camadas Ativas</div>
+        <div className="flex flex-col gap-1">
+          {layers.map((layer) => (
+            <button
+              key={layer.id}
+              onClick={() => onLayerSelect(activeLayer === layer.id ? null : layer.id)}
+              className={cn(
+                "flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all",
+                activeLayer === layer.id
+                  ? "bg-blue-600/20 text-blue-400 border border-blue-500/50"
+                  : "text-slate-400 hover:bg-slate-800 hover:text-slate-200 border border-transparent"
+              )}
+            >
+              <div className={cn("p-1 rounded-md bg-slate-800", layer.color)}>
+                {layer.icon}
+              </div>
+              {layer.label}
+              {activeLayer === layer.id && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />}
+            </button>
+          ))}
+
+          {activeLayer && (
+            <button
+              onClick={() => onLayerSelect(null)}
+              className="mt-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold text-rose-400 hover:bg-rose-500/10 transition-colors border border-transparent hover:border-rose-500/30"
+            >
+              <X className="w-3 h-3" /> Limpar Filtros
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 function MapController({ center, zoom }: { center: [number, number], zoom: number }) {
   const map = useMap();
   useEffect(() => {
@@ -128,6 +175,14 @@ export default function Dashboard() {
   const [polygonPoints, setPolygonPoints] = useState<[number, number][]>([]);
   const [mapFocus, setMapFocus] = useState<{ center: [number, number], zoom: number }>({ center: [-11.2027, 17.8739], zoom: 6 });
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [activeWeatherLayer, setActiveWeatherLayer] = useState<string | null>(null);
+
+  const weatherLayers = [
+    { id: "precipitation_new", label: "Chuva", icon: <CloudRain className="w-3 h-3" />, color: "text-blue-400" },
+    { id: "temp_new", label: "Temp", icon: <ThermometerSun className="w-3 h-3" />, color: "text-orange-400" },
+    { id: "clouds_new", label: "Nuvens", icon: <Cloud className="w-3 h-3" />, color: "text-slate-300" },
+    { id: "wind_new", label: "Vento", icon: <Wind className="w-3 h-3" />, color: "text-cyan-400" },
+  ];
 
   const { data: dbPlots = [], isLoading } = useQuery<DbPlot[]>({
     queryKey: ["/api/plots"],
@@ -398,16 +453,64 @@ export default function Dashboard() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <Card className="glass-panel h-64 overflow-hidden relative cursor-pointer group" onClick={() => setActiveTab("plots")}>
-                    <img src={satelliteFarm} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent p-4 flex flex-col justify-end">
-                      <div className="text-white font-bold flex items-center gap-2"><Layers className="w-4 h-4" /> Mapa de Talhões</div>
+                  <Card className="glass-panel h-80 overflow-hidden relative cursor-pointer group" onClick={() => setActiveTab("plots")}>
+                    <div className="w-full h-full pointer-events-none opacity-80">
+                      <MapContainer
+                        center={[-11.2027, 17.8739]}
+                        zoom={6}
+                        style={{ height: '100%', width: '100%' }}
+                        zoomControl={false}
+                        attributionControl={false}
+                      >
+                        <TileLayer
+                          url="https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}"
+                          subdomains={['mt0', 'mt1', 'mt2', 'mt3']}
+                        />
+                        {activeWeatherLayer && (
+                          <TileLayer
+                            key={activeWeatherLayer}
+                            url={`https://tile.openweathermap.org/map/${activeWeatherLayer}/{z}/{x}/{y}.png?appid=${import.meta.env.VITE_OPENWEATHER_API_KEY || 'de23633304cc83584c64369524097f74'}`}
+                            opacity={0.5}
+                          />
+                        )}
+                      </MapContainer>
+                    </div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent p-6 flex flex-col justify-end transition-all group-hover:from-black/90">
+                      <div className="text-white font-bold text-lg flex items-center gap-2 mb-1">
+                        <Layers className="w-5 h-5 text-primary" /> Global: Mapa de Talhões
+                      </div>
+                      <p className="text-white/60 text-xs">Visualize todos os seus talhões e camadas climáticas em tempo real.</p>
+                      <div className="mt-4 flex gap-2">
+                        <Badge className="bg-primary/20 text-primary border-primary/30 text-[10px]">SATÉLITE</Badge>
+                        <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-[10px]">LIVE</Badge>
+                      </div>
                     </div>
                   </Card>
-                  <Card className="glass-panel h-64 overflow-hidden relative cursor-pointer group" onClick={() => setActiveTab("health")}>
-                    <img src={soilHeatmap} className="w-full h-full object-cover transition-transform group-hover:scale-105 grayscale" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent p-4 flex flex-col justify-end">
-                      <div className="text-white font-bold flex items-center gap-2"><Activity className="w-4 h-4" /> Saúde por NDVI</div>
+
+                  <Card className="glass-panel h-80 overflow-hidden relative cursor-pointer group" onClick={() => setActiveTab("health")}>
+                    <div className="w-full h-full pointer-events-none opacity-80 grayscale-[0.5]">
+                      <MapContainer
+                        center={[-12.77, 15.73]}
+                        zoom={8}
+                        style={{ height: '100%', width: '100%' }}
+                        zoomControl={false}
+                        attributionControl={false}
+                      >
+                        <TileLayer
+                          url="https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}"
+                          subdomains={['mt0', 'mt1', 'mt2', 'mt3']}
+                        />
+                      </MapContainer>
+                    </div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent p-6 flex flex-col justify-end transition-all group-hover:from-black/90">
+                      <div className="text-white font-bold text-lg flex items-center gap-2 mb-1">
+                        <Activity className="w-5 h-5 text-green-400" /> Vigor Vegetativo (NDVI)
+                      </div>
+                      <p className="text-white/60 text-xs">Análise multiespectral de biomassa e saúde foliar via Sentinel-2.</p>
+                      <div className="mt-4 flex gap-2">
+                        <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-[10px]">SENTINEL-2</Badge>
+                        <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 text-[10px]">AI-POWERED</Badge>
+                      </div>
                     </div>
                   </Card>
                 </div>
@@ -465,15 +568,55 @@ export default function Dashboard() {
                 <h2 className="text-2xl font-heading font-bold text-slate-900 dark:text-white">Saúde da Cultura (NDVI)</h2>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <Card className="glass-panel overflow-hidden border-slate-200">
-                    <CardHeader>
-                      <CardTitle className="text-sm">Mapa de Vigor Vegetativo</CardTitle>
+                    <CardHeader className="border-b dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+                      <CardTitle className="text-sm flex items-center gap-2">
+                        <Map className="w-4 h-4 text-primary" /> Índice de Vigor Vegetativo (NDVI)
+                      </CardTitle>
                     </CardHeader>
-                    <div className="h-80 relative">
-                      <img src={satelliteFarm} className="w-full h-full object-cover" />
-                      <div className="absolute top-4 right-4 bg-black/80 text-white p-2 rounded text-[10px] space-y-1">
-                        <div className="flex items-center gap-2"><div className="w-2 h-2 bg-green-500 rounded-full"></div> Saudável (0.8+)</div>
-                        <div className="flex items-center gap-2"><div className="w-2 h-2 bg-yellow-500 rounded-full"></div> Atenção (0.5-0.7)</div>
-                        <div className="flex items-center gap-2"><div className="w-2 h-2 bg-red-500 rounded-full"></div> Alerta (&lt;0.4)</div>
+                    <div className="h-[400px] relative">
+                      <MapContainer
+                        center={[-12.77, 15.73]}
+                        zoom={10}
+                        style={{ height: '100%', width: '100%' }}
+                        zoomControl={true}
+                      >
+                        <TileLayer
+                          attribution='&copy; Google Maps'
+                          url="https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}"
+                          subdomains={['mt0', 'mt1', 'mt2', 'mt3']}
+                        />
+
+                        {activeWeatherLayer && (
+                          <TileLayer
+                            key={activeWeatherLayer}
+                            attribution='&copy; OpenWeatherMap'
+                            url={`https://tile.openweathermap.org/map/${activeWeatherLayer}/{z}/{x}/{y}.png?appid=${import.meta.env.VITE_OPENWEATHER_API_KEY || 'de23633304cc83584c64369524097f74'}`}
+                            opacity={0.6}
+                            zIndex={500}
+                          />
+                        )}
+
+                        <WeatherLayerControl
+                          activeLayer={activeWeatherLayer}
+                          onLayerSelect={setActiveWeatherLayer}
+                          layers={weatherLayers}
+                        />
+                      </MapContainer>
+
+                      <div className="absolute top-4 right-16 z-[1000] bg-black/80 backdrop-blur-md text-white p-3 rounded-xl shadow-2xl border border-white/10 text-[10px] space-y-2">
+                        <div className="font-bold border-b border-white/10 pb-1 mb-1 uppercase tracking-wider text-primary">Legenda NDVI</div>
+                        <div className="flex items-center gap-3">
+                          <div className="w-3 h-3 bg-emerald-500 rounded-sm shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
+                          <span className="font-medium">Saudável (0.8 - 1.0)</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="w-3 h-3 bg-amber-500 rounded-sm shadow-[0_0_8px_rgba(245,158,11,0.5)]"></div>
+                          <span className="font-medium">Atenção (0.5 - 0.7)</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="w-3 h-3 bg-rose-600 rounded-sm shadow-[0_0_8px_rgba(225,29,72,0.5)]"></div>
+                          <span className="font-medium">Alerta (&lt; 0.4)</span>
+                        </div>
                       </div>
                     </div>
                   </Card>
@@ -526,7 +669,15 @@ export default function Dashboard() {
                       <div className="text-[10px] uppercase font-bold text-slate-400 group-hover:text-primary transition-colors">{p.name}</div>
                       <div className="mt-2 flex items-center justify-between">
                         <div className="text-2xl font-bold text-slate-800 dark:text-white">{p.weather.temp}°</div>
-                        {p.weather.rain > 0 ? <CloudRain className="w-5 h-5 text-blue-400" /> : <Sun className="w-5 h-5 text-amber-400" />}
+                        {(() => {
+                          const desc = p.weather.description.toLowerCase();
+                          const isDay = p.weather.isDay;
+                          if (desc.includes("chuva") || desc.includes("aguaceiros")) return <CloudRain className="w-5 h-5 text-blue-400" />;
+                          if (desc.includes("trovoada")) return <CloudLightning className="w-5 h-5 text-purple-400" />;
+                          return isDay ?
+                            <Sun className="w-5 h-5 text-yellow-500" /> :
+                            <Moon className="w-5 h-5 text-blue-300" />;
+                        })()}
                       </div>
                       <div className="mt-2 flex items-center gap-2 text-[10px] text-slate-500">
                         <Wind className="w-3 h-3" /> {p.weather.windSpeed} km/h
@@ -561,41 +712,150 @@ export default function Dashboard() {
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="bg-white/10 p-6 rounded-2xl">
-                          <div className="text-sm opacity-70 mb-2">Condição Atual</div>
-                          <div className="flex items-center gap-4">
-                            <div className="text-5xl font-bold">{selectedProvince.weather.temp}°C</div>
-                            {selectedProvince.weather.rain > 0 ? <CloudRain className="w-10 h-10 text-blue-400" /> : <Sun className="w-10 h-10 text-amber-400" />}
+                        <div className="bg-white/10 p-6 rounded-2xl flex flex-col justify-center items-center text-center">
+                          <div className="text-sm opacity-60 mb-2 uppercase font-bold tracking-widest">Condição Atual</div>
+                          <div className="flex flex-col items-center">
+                            <div className="relative mb-2">
+                              {(() => {
+                                const desc = selectedProvince.weather.description.toLowerCase();
+                                const isDay = selectedProvince.weather.isDay;
+
+                                if (desc.includes("chuva") || desc.includes("aguaceiros")) return <CloudRain className="w-16 h-16 text-blue-400 drop-shadow-[0_0_8px_rgba(96,165,250,0.5)]" />;
+                                if (desc.includes("trovoada")) return <CloudLightning className="w-16 h-16 text-purple-400 drop-shadow-[0_0_8px_rgba(192,132,252,0.5)]" />;
+                                if (desc.includes("nublado") || desc.includes("encoberto")) return <CloudSun className="w-16 h-16 text-slate-300" />;
+
+                                return isDay ?
+                                  <Sun className="w-16 h-16 text-yellow-400 drop-shadow-[0_0_12px_rgba(250,204,21,0.6)]" /> :
+                                  <Moon className="w-16 h-16 text-blue-200 drop-shadow-[0_0_12px_rgba(191,219,254,0.6)]" />;
+                              })()}
+                            </div>
+                            <div className="text-5xl font-black flex items-start">
+                              {selectedProvince.weather.temp.toFixed(1)}
+                              <span className="text-xl mt-1 ml-0.5 text-blue-100">°</span>
+                            </div>
+                            <p className="mt-1 text-sm text-blue-100 uppercase font-bold tracking-wide">{selectedProvince.weather.description}</p>
+                            <div className="mt-4 flex items-center gap-1.5 opacity-40 text-[9px] uppercase font-bold">
+                              <RefreshCw className="w-2.5 h-2.5 animate-spin-slow" />
+                              Satélite: {selectedProvince.weather.time || "Sincronizado"}
+                            </div>
                           </div>
-                          <p className="mt-2 text-lg text-blue-100 uppercase tracking-wider">{selectedProvince.weather.description}</p>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="p-4 bg-white/5 rounded-xl border border-white/10">
-                            <div className="text-[10px] opacity-60 uppercase">Humidade</div>
-                            <div className="text-xl font-bold">{selectedProvince.weather.humidity}%</div>
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                          <div className="p-3 bg-white/5 rounded-xl border border-white/10 group hover:bg-white/10 transition-all">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Sunrise className="w-3 h-3 text-amber-400" />
+                              <div className="text-[10px] opacity-60 uppercase">Nascer do Sol</div>
+                            </div>
+                            <div className="text-lg font-bold">{selectedProvince.weather.sunrise || "--:--"}</div>
                           </div>
-                          <div className="p-4 bg-white/5 rounded-xl border border-white/10">
-                            <div className="text-[10px] opacity-60 uppercase">Vento</div>
-                            <div className="text-xl font-bold">{selectedProvince.weather.windSpeed} km/h</div>
+
+                          <div className="p-3 bg-white/5 rounded-xl border border-white/10 group hover:bg-white/10 transition-all">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Sun className="w-3 h-3 text-yellow-400" />
+                              <div className="text-[10px] opacity-60 uppercase">Índice UV</div>
+                            </div>
+                            <div className="text-lg font-bold">{selectedProvince.weather.uvIndex}</div>
                           </div>
-                          <div className="p-4 bg-white/5 rounded-xl border border-white/10">
-                            <div className="text-[10px] opacity-60 uppercase">Índice UV</div>
-                            <div className="text-xl font-bold">{selectedProvince.weather.uvIndex}</div>
+
+                          <div className="p-3 bg-white/5 rounded-xl border border-white/10 group hover:bg-white/10 transition-all">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Wind className="w-3 h-3 text-slate-400" />
+                              <div className="text-[10px] opacity-60 uppercase">Vento</div>
+                            </div>
+                            <div className="text-lg font-bold">{selectedProvince.weather.windSpeed} <span className="text-[10px] opacity-50">km/h</span></div>
                           </div>
-                          <div className="p-4 bg-white/5 rounded-xl border border-white/10">
-                            <div className="text-[10px] opacity-60 uppercase">Chuva (1h)</div>
-                            <div className="text-xl font-bold">{selectedProvince.weather.rain} mm</div>
+
+                          <div className="p-3 bg-white/5 rounded-xl border border-white/10 group hover:bg-white/10 transition-all">
+                            <div className="flex items-center gap-2 mb-1">
+                              <ThermometerSun className="w-3 h-3 text-orange-400" />
+                              <div className="text-[10px] opacity-60 uppercase">Sensação</div>
+                            </div>
+                            <div className="text-lg font-bold">{selectedProvince.weather.apparentTemp?.toFixed(1) || selectedProvince.weather.temp}°</div>
+                          </div>
+
+                          <div className="p-3 bg-white/5 rounded-xl border border-white/10 group hover:bg-white/10 transition-all">
+                            <div className="flex items-center gap-2 mb-1">
+                              <CloudRain className="w-3 h-3 text-blue-400" />
+                              <div className="text-[10px] opacity-60 uppercase">Precipitação</div>
+                            </div>
+                            <div className="text-lg font-bold">{selectedProvince.weather.rain} <span className="text-[10px] opacity-50">mm</span></div>
+                          </div>
+
+                          <div className="p-3 bg-white/5 rounded-xl border border-white/10 group hover:bg-white/10 transition-all">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Droplets className="w-3 h-3 text-cyan-400" />
+                              <div className="text-[10px] opacity-60 uppercase">Humidade</div>
+                            </div>
+                            <div className="text-lg font-bold">{selectedProvince.weather.humidity}%</div>
+                          </div>
+
+                          <div className="p-3 bg-white/5 rounded-xl border border-white/10 group hover:bg-white/10 transition-all">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Eye className="w-3 h-3 text-indigo-400" />
+                              <div className="text-[10px] opacity-60 uppercase">Visibilidade</div>
+                            </div>
+                            <div className="text-lg font-bold">{selectedProvince.weather.visibility?.toFixed(1) || "10.0"} <span className="text-[10px] opacity-50">km</span></div>
+                          </div>
+
+                          <div className="p-3 bg-white/5 rounded-xl border border-white/10 group hover:bg-white/10 transition-all">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Gauge className="w-3 h-3 text-emerald-400" />
+                              <div className="text-[10px] opacity-60 uppercase">Pressão</div>
+                            </div>
+                            <div className="text-lg font-bold">{selectedProvince.weather.pressure?.toFixed(0) || "1013"} <span className="text-[10px] opacity-50">hPa</span></div>
                           </div>
                         </div>
 
-                        <div className="bg-white/5 p-6 rounded-2xl border border-white/10">
-                          <h4 className="font-bold mb-4 text-sm flex items-center gap-2">
-                            <Droplets className="w-4 h-4" /> Recomendação Hídrica
-                          </h4>
-                          <div className="space-y-4">
-                            <div className="text-2xl font-bold text-blue-300">Irrigação Moderada</div>
-                            <p className="text-[11px] opacity-70">Baseado na evapotranspiração de {selectedProvince.name}, recomenda-se janela de rega entre 18:00 e 21:00.</p>
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                          <div className="bg-white/5 p-6 rounded-2xl border border-white/10">
+                            <h4 className="font-bold mb-4 text-sm flex items-center gap-2">
+                              <Droplets className="w-4 h-4" /> Recomendação Hídrica
+                            </h4>
+                            <div className="space-y-4">
+                              <div className="text-2xl font-bold text-blue-300">Irrigação Moderada</div>
+                              <p className="text-[11px] opacity-70">Baseado na evapotranspiração de {selectedProvince.name}, recomenda-se janela de rega entre 18:00 e 21:00 para maximizar absorção.</p>
+                              <div className="p-3 bg-blue-500/10 rounded-lg border border-blue-500/20 text-[10px] text-blue-200">
+                                <span className="font-bold uppercase block mb-1">Nota Técnica:</span>
+                                Evite regar durante o pico de radiação UV ({selectedProvince.weather.uvIndex}) para prevenir estresse térmico radicular.
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="bg-white/5 rounded-2xl border border-white/10 overflow-hidden min-h-[220px] relative h-full">
+                            <MapContainer
+                              center={[Number(selectedProvince.lat), Number(selectedProvince.lng)]}
+                              zoom={9}
+                              style={{ height: '100%', width: '100%' }}
+                              zoomControl={false}
+                            >
+                              <MapController center={[Number(selectedProvince.lat), Number(selectedProvince.lng)]} zoom={9} />
+                              <TileLayer
+                                attribution='&copy; Google Maps'
+                                url="https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}"
+                                subdomains={['mt0', 'mt1', 'mt2', 'mt3']}
+                              />
+
+                              {activeWeatherLayer && (
+                                <TileLayer
+                                  key={activeWeatherLayer}
+                                  attribution='&copy; OpenWeatherMap'
+                                  url={`https://tile.openweathermap.org/map/${activeWeatherLayer}/{z}/{x}/{y}.png?appid=${import.meta.env.VITE_OPENWEATHER_API_KEY || 'de23633304cc83584c64369524097f74'}`}
+                                  opacity={0.6}
+                                  zIndex={500}
+                                />
+                              )}
+
+                              <div className="absolute top-2 left-2 z-[1000] bg-black/50 backdrop-blur px-2 py-1 rounded text-[10px] uppercase font-bold text-white flex items-center gap-1">
+                                <MapPin className="w-3 h-3 text-rose-500" /> {selectedProvince.name}
+                              </div>
+
+                              <WeatherLayerControl
+                                activeLayer={activeWeatherLayer}
+                                onLayerSelect={setActiveWeatherLayer}
+                                layers={weatherLayers}
+                              />
+                            </MapContainer>
                           </div>
                         </div>
                       </div>
@@ -656,6 +916,23 @@ export default function Dashboard() {
                               attribution='&copy; Google Maps'
                               url="https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}"
                               subdomains={['mt0', 'mt1', 'mt2', 'mt3']}
+                            />
+
+                            {/* Weather Heatmap Layers */}
+                            {activeWeatherLayer && (
+                              <TileLayer
+                                key={activeWeatherLayer}
+                                attribution='&copy; OpenWeatherMap'
+                                url={`https://tile.openweathermap.org/map/${activeWeatherLayer}/{z}/{x}/{y}.png?appid=${import.meta.env.VITE_OPENWEATHER_API_KEY || 'de23633304cc83584c64369524097f74'}`}
+                                opacity={0.6}
+                                zIndex={500}
+                              />
+                            )}
+
+                            <WeatherLayerControl
+                              activeLayer={activeWeatherLayer}
+                              onLayerSelect={setActiveWeatherLayer}
+                              layers={weatherLayers}
                             />
                             <MapEvents
                               onMapChange={(center, zoom) => setMapFocus({ center, zoom })}
