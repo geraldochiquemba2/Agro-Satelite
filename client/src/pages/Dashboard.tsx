@@ -31,6 +31,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetClose } from "@/components/ui/sheet";
 
 // Assets generated
 import satelliteFarm from "@/assets/images/satellite-farm.png";
@@ -412,6 +413,41 @@ export default function Dashboard() {
         {/* Top Header */}
         <header className="h-16 flex items-center justify-between px-4 sm:px-6 lg:px-8 bg-white/70 dark:bg-slate-900/70 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 sticky top-0 z-10">
           <div className="flex items-center gap-4">
+            {/* Mobile Menu */}
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="md:hidden">
+                  <Menu className="w-5 h-5 text-slate-600 dark:text-slate-300" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="p-0 w-64 border-r border-slate-200 dark:border-slate-800">
+                <SheetHeader className="p-6 border-b border-slate-200 dark:border-slate-800">
+                  <SheetTitle className="flex items-center gap-2 text-primary font-heading font-bold text-xl">
+                    <Sprout className="w-6 h-6" />
+                    <span>AgriSat</span>
+                  </SheetTitle>
+                </SheetHeader>
+                <nav className="p-4 space-y-2">
+                  <SheetClose asChild>
+                    <NavItem icon={<Map className="w-5 h-5" />} label="Visão Geral" active={activeTab === "overview"} onClick={() => { setActiveTab("overview"); }} isOpen={true} />
+                  </SheetClose>
+                  <SheetClose asChild>
+                    <NavItem icon={<Droplets className="w-5 h-5" />} label="Irrigação" active={activeTab === "irrigation"} onClick={() => { setActiveTab("irrigation"); }} isOpen={true} />
+                  </SheetClose>
+                  <SheetClose asChild>
+                    <NavItem icon={<Activity className="w-5 h-5" />} label="Saúde da Cultura" active={activeTab === "health"} onClick={() => { setActiveTab("health"); }} isOpen={true} />
+                  </SheetClose>
+                  <SheetClose asChild>
+                    <NavItem icon={<CloudRain className="w-5 h-5" />} label="Clima" active={activeTab === "climate"} onClick={() => { setActiveTab("climate"); }} isOpen={true} />
+                  </SheetClose>
+                  <SheetClose asChild>
+                    <NavItem icon={<MapPin className="w-5 h-5" />} label="Talhões" active={activeTab === "plots"} onClick={() => { setActiveTab("plots"); }} isOpen={true} />
+                  </SheetClose>
+                </nav>
+              </SheetContent>
+            </Sheet>
+
+            {/* Desktop Toggle Button */}
             <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(!isSidebarOpen)} className="hidden md:flex">
               <Menu className="w-5 h-5 text-slate-600 dark:text-slate-300" />
             </Button>
