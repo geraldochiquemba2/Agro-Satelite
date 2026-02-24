@@ -48,7 +48,7 @@ const healthHistoryData = [
   { name: 'Sem 5', ndvi: 0.88 },
 ];
 interface Plot {
-  id: string; // Mudado de number para string (UUID)
+  id: string;
   name: string;
   crop: string;
   area: number;
@@ -57,6 +57,7 @@ interface Plot {
   lng: string;
   altitude: string;
   boundaryPoints?: [number, number][];
+  analysis?: string; // Campo novo
 }
 
 // Utility to calculate polygon area in hectares
@@ -148,7 +149,21 @@ export default function Dashboard() {
     },
   });
 
-  const [newPlot, setNewPlot] = useState({ name: "", crop: "Soja", area: "", lat: "", lng: "", altitude: "" });
+  const analyzeMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await apiRequest("POST", `/api/plots/${id}/analyze`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/plots"] });
+      toast({
+        title: "Análise Groq Concluída",
+        description: "O relatório agronômico foi gerado via IA.",
+      });
+    },
+  });
+
+  const [newPlot, setNewPlot] = useState({ name: "", crop: "Soja", area: "", lat: "", lng: "", altitude: "", analysis: "" });
   const [polygonPoints, setPolygonPoints] = useState<[number, number][]>([]);
   const [mapFocus, setMapFocus] = useState<{ center: [number, number], zoom: number }>({ center: [-11.2027, 17.8739], zoom: 6 });
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -177,8 +192,10 @@ export default function Dashboard() {
       area: plot.area.toString(),
       lat: plot.lat,
       lng: plot.lng,
-      altitude: plot.altitude
+      altitude: plot.altitude,
+      analysis: plot.analysis || ""
     });
+    // ... resto ...
     if (plot.boundaryPoints) {
       setPolygonPoints(plot.boundaryPoints);
     } else {
@@ -589,6 +606,32 @@ export default function Dashboard() {
                                 <span className="absolute right-3 top-2.5 text-xs text-slate-400">m</span>
                               </div>
                             </div>
+
+                            {newPlot.analysis && (
+                              <div className="p-4 bg-primary/5 rounded-lg border border-primary/20 space-y-2">
+                                <h4 className="text-xs font-bold text-primary flex items-center gap-1 uppercase">
+                                  <Activity className="w-3 h-3" /> Análise Agronômica Groq AI
+                                </h4>
+                                <p className="text-[11px] text-slate-700 dark:text-slate-300 leading-relaxed italic">
+                                  "{newPlot.analysis}"
+                                </p>
+                              </div>
+                            )}
+
+                            {dbPlots.find(p => p.name === newPlot.name && p.lat === newPlot.lat) && (
+                              <Button
+                                onClick={() => {
+                                  const p = dbPlots.find(idx => idx.name === newPlot.name);
+                                  if (p) analyzeMutation.mutate(p.id);
+                                }}
+                                variant="outline"
+                                className="w-full gap-2 text-xs border-primary/30 text-primary hover:bg-primary/10"
+                                disabled={analyzeMutation.isPending}
+                              >
+                                {analyzeMutation.isPending ? <Activity className="w-3 h-3 animate-spin" /> : <Sprout className="w-3 h-3" />}
+                                {newPlot.analysis ? "Recalcular Análise IA" : "Solicitar Análise Groq AI"}
+                              </Button>
+                            )}
                           </div>
 
                           <DialogFooter className="mt-8">

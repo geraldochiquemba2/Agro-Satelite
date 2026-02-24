@@ -19,6 +19,7 @@ export const plots = pgTable("plots", {
   lng: text("lng").notNull(),
   altitude: text("altitude").notNull(),
   boundaryPoints: text("boundary_points"), // Almazena como JSON string
+  analysis: text("analysis"), // Resultado da análise Groq AI
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({

@@ -12,7 +12,9 @@ export interface IStorage {
 
   // Plot methods
   getPlots(): Promise<Plot[]>;
+  getPlot(id: string): Promise<Plot | undefined>;
   createPlot(plot: InsertPlot): Promise<Plot>;
+  updatePlotAnalysis(id: string, analysis: string): Promise<Plot>;
   deletePlot(id: string): Promise<void>;
 }
 
@@ -36,8 +38,21 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(plots);
   }
 
+  async getPlot(id: string): Promise<Plot | undefined> {
+    const [plot] = await db.select().from(plots).where(eq(plots.id, id));
+    return plot;
+  }
+
   async createPlot(insertPlot: InsertPlot): Promise<Plot> {
     const [plot] = await db.insert(plots).values(insertPlot).returning();
+    return plot;
+  }
+
+  async updatePlotAnalysis(id: string, analysis: string): Promise<Plot> {
+    const [plot] = await db.update(plots)
+      .set({ analysis })
+      .where(eq(plots.id, id))
+      .returning();
     return plot;
   }
 
