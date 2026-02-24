@@ -1,6 +1,4 @@
 
-import fetch from "node-fetch";
-
 export interface WeatherData {
     temp: number;
     humidity: number;
