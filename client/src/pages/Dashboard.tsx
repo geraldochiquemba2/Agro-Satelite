@@ -601,7 +601,24 @@ export default function Dashboard() {
                               </span>
                             </div>
                           </div>
-                          {polygonPoints.length > 0 && (
+                          {newPlot.lat && (
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              className="absolute bottom-4 right-4 z-[1000] h-8 text-[10px] shadow-lg"
+                              onClick={() => {
+                                setNewPlot(prev => ({ ...prev, lat: "", lng: "", altitude: "", area: "" }));
+                                setPolygonPoints([]);
+                                toast({
+                                  title: "Localização Limpa",
+                                  description: "O marcador central e os pontos foram removidos.",
+                                });
+                              }}
+                            >
+                              <X className="w-3 h-3 mr-1" /> Limpar Localização
+                            </Button>
+                          )}
+                          {polygonPoints.length > 0 && !newPlot.lat && (
                             <Button
                               size="sm"
                               variant="secondary"
