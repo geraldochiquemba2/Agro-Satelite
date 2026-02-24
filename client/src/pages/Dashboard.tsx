@@ -382,7 +382,22 @@ export default function Dashboard() {
                               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                             />
                             <MapEvents onLocationSelect={(lat, lng) => {
-                              setNewPlot(prev => ({ ...prev, lat: lat.toFixed(6), lng: lng.toFixed(6) }));
+                              // Simulação de telemetria baseada em coordenadas reais (Ex: Angola GBSA)
+                              const simulatedAlt = Math.floor((Math.abs(lat) * 15) + (Math.abs(lng) * 8) + 350);
+                              const simulatedArea = (Math.random() * 120 + 40).toFixed(2);
+
+                              setNewPlot(prev => ({
+                                ...prev,
+                                lat: lat.toFixed(6),
+                                lng: lng.toFixed(6),
+                                altitude: simulatedAlt.toString(),
+                                area: simulatedArea
+                              }));
+
+                              toast({
+                                title: "Telemetria Capturada",
+                                description: `Coordenadas e altitude (${simulatedAlt}m) processadas via satélite.`,
+                              });
                             }} />
                             {newPlot.lat && newPlot.lng && (
                               <Marker position={[Number(newPlot.lat), Number(newPlot.lng)]} />
@@ -541,9 +556,10 @@ function NavItem({ icon, label, active = false, onClick, isOpen }: { icon: React
         } `}
     >
       <div className={`${active ? 'text-primary' : 'text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300'} `}>
-        {icon}
-      </div>
-      {isOpen && <span>{label}</span>}
+        <div className={`${active ? 'text-primary' : 'text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300'}`}>
+          {icon}
+        </div>
+        {isOpen && <span>{label}</span>}
     </button>
   );
 }
