@@ -163,6 +163,11 @@ function MapController({ center, zoom }: { center: [number, number], zoom: numbe
   const map = useMap();
   useEffect(() => {
     map.setView(center, zoom);
+    // Forçar atualização do tamanho para evitar tiles "quebrados" em diálogos/tabs
+    const timer = setTimeout(() => {
+      map.invalidateSize();
+    }, 200);
+    return () => clearTimeout(timer);
   }, [center, zoom, map]);
   return null;
 }
@@ -580,6 +585,7 @@ export default function Dashboard() {
                         style={{ height: '100%', width: '100%' }}
                         zoomControl={true}
                       >
+                        <MapController center={[-12.77, 15.73]} zoom={10} />
                         <TileLayer
                           attribution='&copy; Google Maps'
                           url="https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}"
@@ -595,13 +601,13 @@ export default function Dashboard() {
                             zIndex={500}
                           />
                         )}
-
-                        <WeatherLayerControl
-                          activeLayer={activeWeatherLayer}
-                          onLayerSelect={setActiveWeatherLayer}
-                          layers={weatherLayers}
-                        />
                       </MapContainer>
+
+                      <WeatherLayerControl
+                        activeLayer={activeWeatherLayer}
+                        onLayerSelect={setActiveWeatherLayer}
+                        layers={weatherLayers}
+                      />
 
                       <div className="absolute top-4 right-16 z-[1000] bg-black/80 backdrop-blur-md text-white p-3 rounded-xl shadow-2xl border border-white/10 text-[10px] space-y-2">
                         <div className="font-bold border-b border-white/10 pb-1 mb-1 uppercase tracking-wider text-primary">Legenda NDVI</div>
@@ -849,13 +855,13 @@ export default function Dashboard() {
                               <div className="absolute top-2 left-2 z-[1000] bg-black/50 backdrop-blur px-2 py-1 rounded text-[10px] uppercase font-bold text-white flex items-center gap-1">
                                 <MapPin className="w-3 h-3 text-rose-500" /> {selectedProvince.name}
                               </div>
-
-                              <WeatherLayerControl
-                                activeLayer={activeWeatherLayer}
-                                onLayerSelect={setActiveWeatherLayer}
-                                layers={weatherLayers}
-                              />
                             </MapContainer>
+
+                            <WeatherLayerControl
+                              activeLayer={activeWeatherLayer}
+                              onLayerSelect={setActiveWeatherLayer}
+                              layers={weatherLayers}
+                            />
                           </div>
                         </div>
                       </div>
@@ -929,11 +935,6 @@ export default function Dashboard() {
                               />
                             )}
 
-                            <WeatherLayerControl
-                              activeLayer={activeWeatherLayer}
-                              onLayerSelect={setActiveWeatherLayer}
-                              layers={weatherLayers}
-                            />
                             <MapEvents
                               onMapChange={(center, zoom) => setMapFocus({ center, zoom })}
                               onLocationSelect={(lat, lng) => {
@@ -977,6 +978,12 @@ export default function Dashboard() {
                               />
                             )}
                           </MapContainer>
+
+                          <WeatherLayerControl
+                            activeLayer={activeWeatherLayer}
+                            onLayerSelect={setActiveWeatherLayer}
+                            layers={weatherLayers}
+                          />
                           <div className="absolute top-4 left-4 z-[1000] space-y-2">
                             <div className="bg-white/90 backdrop-blur p-2 rounded-lg shadow-xl border border-slate-200 pointer-events-none">
                               <span className="text-[10px] uppercase font-bold text-primary flex items-center gap-1">
