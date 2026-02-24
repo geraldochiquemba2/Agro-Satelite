@@ -47,11 +47,24 @@ export async function getPlotWeather(lat: string, lng: string): Promise<WeatherD
 
 async function fetchOpenMeteo(lat: string, lng: string): Promise<WeatherData> {
     try {
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,precipitation,uv_index&timezone=auto`;
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,precipitation,uv_index,weather_code&timezone=auto`;
         const res = await fetch(url);
         if (!res.ok) throw new Error("Erro Open-Meteo");
         const data = await res.json();
         const current = data.current;
+        const code = current.weather_code;
+
+        // Mapeamento WMO Weather Codes para Português
+        const weatherMap: Record<number, string> = {
+            0: "Céu Limpo",
+            1: "Principalmente Limpo", 2: "Parcialmente Nublado", 3: "Encoberto",
+            45: "Nevoeiro", 48: "Nevoeiro com Gelo",
+            51: "Chuvisco Leve", 53: "Chuvisco Moderado", 55: "Chuvisco Denso",
+            61: "Chuva Leve", 63: "Chuva Moderada", 65: "Chuva Forte",
+            71: "Neve Leve", 73: "Neve Moderada", 75: "Neve Forte",
+            80: "Aguaceiros Leves", 81: "Aguaceiros Moderados", 82: "Aguaceiros Violentos",
+            95: "Trovoada", 96: "Trovoada com Granizo Leve", 99: "Trovoada com Granizo Forte"
+        };
 
         return {
             temp: current.temperature_2m,
@@ -59,7 +72,7 @@ async function fetchOpenMeteo(lat: string, lng: string): Promise<WeatherData> {
             windSpeed: current.wind_speed_10m,
             rain: current.precipitation,
             uvIndex: current.uv_index,
-            description: current.precipitation > 0 ? "Chuva detectada" : "Céu Limpo",
+            description: weatherMap[code] || (current.precipitation > 0 ? "Chuva" : "Limpo"),
             isSimulated: false
         };
     } catch (e) {
