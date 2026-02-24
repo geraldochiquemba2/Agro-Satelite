@@ -163,13 +163,28 @@ function MapController({ center, zoom }: { center: [number, number], zoom: numbe
   const map = useMap();
   useEffect(() => {
     map.setView(center, zoom);
+
     // Múltiplos disparos de invalidateSize para garantir alinhamento pós-animação
     const timers = [
       setTimeout(() => map.invalidateSize(), 200),
       setTimeout(() => map.invalidateSize(), 500),
-      setTimeout(() => map.invalidateSize(), 1000)
+      setTimeout(() => map.invalidateSize(), 1500)
     ];
-    return () => timers.forEach(t => clearTimeout(t));
+
+    // ResizeObserver para garantir que o mapa preencha o container se ele mudar de tamanho (ex: modal abrindo)
+    const resizeObserver = new ResizeObserver(() => {
+      map.invalidateSize();
+    });
+
+    const container = map.getContainer();
+    if (container) {
+      resizeObserver.observe(container);
+    }
+
+    return () => {
+      timers.forEach(t => clearTimeout(t));
+      resizeObserver.disconnect();
+    };
   }, [center, zoom, map]);
   return null;
 }
@@ -834,387 +849,387 @@ export default function Dashboard() {
                             <div className="mt-2 font-bold text-xs">{selectedProvince.weather.temp + (i - 2)}°</div>
                           </div>
                         ))}
-                        </div>
-                      </div>
-                    </Card>
-                  )}
-                </div>
-              )}
-            {activeTab === "plots" && (
-              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
-              <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-heading font-bold text-slate-900 dark:text-white">Gerenciamento de Talhões</h2>
-                <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button
-                      className="gap-2 shadow-lg hover:shadow-primary/20 transition-all"
-                      onClick={() => {
-                        setNewPlot({ name: "", crop: "Soja", area: "", lat: "", lng: "", altitude: "" });
-                        setPolygonPoints([]);
-                        setMapFocus({ center: [-11.2027, 17.8739], zoom: 6 });
-                      }}
-                    >
-                      <Plus className="w-4 h-4" /> Adicionar Talhão
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-[1000px] p-0 overflow-hidden border-0 gap-0 relative">
-                    {isSwitchingPlot && (
-                      <div className="absolute inset-0 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm z-[1100] flex flex-col items-center justify-center animate-in fade-in duration-300">
-                        <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
-                        <div className="text-primary font-bold tracking-widest text-xs uppercase animate-pulse">Sincronizando Telemetria...</div>
-                      </div>
-                    )}
-                    <div className="flex flex-col md:flex-row h-[600px] max-h-[90vh]">
-                      {/* Map Section */}
-                      <div className="w-full md:w-3/5 h-64 md:h-full relative z-0 border-r border-slate-200 dark:border-slate-800">
-                        <MapContainer
-                          center={mapFocus.center}
-                          zoom={mapFocus.zoom}
-                          style={{ height: '100%', width: '100%', minHeight: '100%' }}
-                          scrollWheelZoom={true}
-                        >
-                          <MapController center={mapFocus.center} zoom={mapFocus.zoom} />
-                          <TileLayer
-                            attribution='&copy; Google Maps'
-                            url="https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}"
-                            subdomains={['mt0', 'mt1', 'mt2', 'mt3']}
-                          />
-
-                          {/* Weather Heatmap Layers */}
-                          {activeWeatherLayer && (
-                            <TileLayer
-                              key={activeWeatherLayer}
-                              attribution='&copy; OpenWeatherMap'
-                              url={`https://tile.openweathermap.org/map/${activeWeatherLayer}/{z}/{x}/{y}.png?appid=${import.meta.env.VITE_OPENWEATHER_API_KEY || 'de23633304cc83584c64369524097f74'}`}
-                              opacity={0.6}
-                              zIndex={500}
-                            />
-                          )}
-
-                          <MapEvents
-                            onMapChange={(center, zoom) => setMapFocus({ center, zoom })}
-                            onLocationSelect={(lat, lng) => {
-                              if (!newPlot.lat || !newPlot.lng) {
-                                // Primeiro clique: Centro e Telemetria
-                                const simulatedAlt = Math.floor((Math.abs(lat) * 15) + (Math.abs(lng) * 8) + 350);
-                                setNewPlot(prev => ({
-                                  ...prev,
-                                  lat: lat.toFixed(6),
-                                  lng: lng.toFixed(6),
-                                  altitude: simulatedAlt.toString()
-                                }));
-                                toast({
-                                  title: "Centro Definido",
-                                  description: "Agora clique em 4 pontos para delimitar a área.",
-                                });
-                              } else if (polygonPoints.length < 4) {
-                                // Próximos 4 cliques: Polígono
-                                const newPoints: [number, number][] = [...polygonPoints, [lat, lng]];
-                                setPolygonPoints(newPoints);
-
-                                if (newPoints.length === 4) {
-                                  // Calcular área automaticamente
-                                  const areaHectares = calculateArea(newPoints);
-                                  setNewPlot(prev => ({ ...prev, area: areaHectares.toString() }));
-                                  toast({
-                                    title: "Zona Delimitada",
-                                    description: `Área de ${areaHectares}ha calculada automaticamente.`,
-                                  });
-                                }
-                              }
-                            }}
-                          />
-                          {newPlot.lat && newPlot.lng && (
-                            <Marker position={[Number(newPlot.lat), Number(newPlot.lng)]} />
-                          )}
-                          {polygonPoints.length > 0 && (
-                            <Polygon
-                              positions={polygonPoints}
-                              pathOptions={{ color: 'yellow', fillColor: 'yellow', fillOpacity: 0.3 }}
-                            />
-                          )}
-                        </MapContainer>
-
-                        <WeatherLayerControl
-                          activeLayer={activeWeatherLayer}
-                          onLayerSelect={setActiveWeatherLayer}
-                          layers={weatherLayers}
-                        />
-                        <div className="absolute top-4 left-4 z-[1000] space-y-2">
-                          <div className="bg-white/90 backdrop-blur p-2 rounded-lg shadow-xl border border-slate-200 pointer-events-none">
-                            <span className="text-[10px] uppercase font-bold text-primary flex items-center gap-1">
-                              <Activity className="w-3 h-3" /> Modo: {!newPlot.lat ? "Definir Centro" : polygonPoints.length < 4 ? `Delimitar (${polygonPoints.length}/4)` : "Pronto"}
-                            </span>
-                          </div>
-                          <div className="bg-white/90 backdrop-blur p-2 rounded-lg shadow-xl border border-slate-200 pointer-events-none">
-                            <span className="text-[10px] font-mono text-slate-800 flex items-center gap-1">
-                              <MapPin className="w-3 h-3 text-primary" />
-                              {!newPlot.lat ? "1º clique: Centro do Talhão" : polygonPoints.length < 4 ? "Clique nos limites da área" : "Área Delimitada com Sucesso"}
-                            </span>
-                          </div>
-                        </div>
-                        {newPlot.lat && (
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            className="absolute bottom-4 right-4 z-[1000] h-8 text-[10px] shadow-lg"
-                            onClick={() => {
-                              setNewPlot(prev => ({ ...prev, lat: "", lng: "", altitude: "", area: "" }));
-                              setPolygonPoints([]);
-                              toast({
-                                title: "Localização Limpa",
-                                description: "O marcador central e os pontos foram removidos.",
-                              });
-                            }}
-                          >
-                            <X className="w-3 h-3 mr-1" /> Limpar Localização
-                          </Button>
-                        )}
-                        {polygonPoints.length > 0 && !newPlot.lat && (
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            className="absolute bottom-4 left-4 z-[1000] h-8 text-[10px]"
-                            onClick={() => { setPolygonPoints([]); setNewPlot(p => ({ ...p, area: "" })); }}
-                          >
-                            <Trash2 className="w-3 h-3 mr-1" /> Limpar Pontos
-                          </Button>
-                        )}
-                      </div>
-
-                      {/* Form Section */}
-                      <div className="w-full md:w-2/5 p-6 flex flex-col bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 overflow-y-auto">
-                        <DialogHeader className="mb-6">
-                          <DialogTitle className="text-xl font-heading">Novo Mapeamento</DialogTitle>
-                          <DialogDescription>
-                            Insira os detalhes do terreno e as coordenadas geográficas.
-                          </DialogDescription>
-                        </DialogHeader>
-
-                        <div className="space-y-4 flex-1">
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label htmlFor="name">Identificação</Label>
-                              <Input id="name" value={newPlot.name} onChange={(e) => setNewPlot({ ...newPlot, name: e.target.value })} placeholder="Ex: Talhão 04" />
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor="crop">Cultura</Label>
-                              <Select value={newPlot.crop} onValueChange={(v) => setNewPlot({ ...newPlot, crop: v })}>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Cultura" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="Soja">Soja</SelectItem>
-                                  <SelectItem value="Milho">Milho</SelectItem>
-                                  <SelectItem value="Algodão">Algodão</SelectItem>
-                                  <SelectItem value="Trigo">Trigo</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label htmlFor="area">Área Total (Equitários)</Label>
-                            <div className="relative">
-                              <Input id="area" type="number" value={newPlot.area} onChange={(e) => setNewPlot({ ...newPlot, area: e.target.value })} placeholder="0.00" />
-                              <span className="absolute right-3 top-2.5 text-xs text-slate-400">ha</span>
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label htmlFor="lat">Latitude</Label>
-                              <Input id="lat" value={newPlot.lat} onChange={(e) => setNewPlot({ ...newPlot, lat: e.target.value })} placeholder="-12.3456" />
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor="lng">Longitude</Label>
-                              <Input id="lng" value={newPlot.lng} onChange={(e) => setNewPlot({ ...newPlot, lng: e.target.value })} placeholder="-45.6789" />
-                            </div>
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label htmlFor="altitude">Altitude (Metros)</Label>
-                            <div className="relative">
-                              <Input id="altitude" value={newPlot.altitude} onChange={(e) => setNewPlot({ ...newPlot, altitude: e.target.value })} placeholder="Ex: 520" />
-                              <span className="absolute right-3 top-2.5 text-xs text-slate-400">m</span>
-                            </div>
-                          </div>
-
-                          {liveTelemetry && (
-                            <div className="grid grid-cols-2 gap-2 py-2">
-                              <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-100 dark:border-blue-800">
-                                <div className="text-[10px] text-blue-600 uppercase font-bold">Solo (V-Sensor)</div>
-                                <div className="text-lg font-bold text-blue-900 dark:text-blue-100">{liveTelemetry.soil.moisture}%</div>
-                                <div className="text-[9px] text-blue-500">{liveTelemetry.soil.status}</div>
-                              </div>
-                              <div className="p-2 bg-amber-50 dark:bg-amber-900/20 rounded border border-amber-100 dark:border-amber-800">
-                                <div className="text-[10px] text-amber-600 uppercase font-bold">Clima (Live Satélite)</div>
-                                <div className="text-lg font-bold text-amber-900 dark:text-amber-100">{liveTelemetry.weather.temp}°C</div>
-                                <div className="text-[9px] text-amber-500">{liveTelemetry.weather.description}</div>
-                              </div>
-                            </div>
-                          )}
-
-                          {newPlot.analysis && (
-                            <div className="p-4 bg-primary/5 rounded-lg border border-primary/20 space-y-2">
-                              <h4 className="text-xs font-bold text-primary flex items-center gap-1 uppercase">
-                                <Activity className="w-3 h-3" /> Análise Agronômica Groq AI
-                              </h4>
-                              <p className="text-[11px] text-slate-700 dark:text-slate-300 leading-relaxed italic">
-                                "{newPlot.analysis}"
-                              </p>
-                            </div>
-                          )}
-
-                          {dbPlots.find(p => p.name === newPlot.name && p.lat === newPlot.lat) && (
-                            <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-800">
-                              <h4 className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2">
-                                <MessageSquare className="w-3 h-3" /> Chat Agrosatelite IA
-                              </h4>
-
-                              <div className="max-h-[200px] overflow-y-auto space-y-3 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-200 dark:border-slate-800">
-                                {plots.find(p => p.name === newPlot.name)?.chatHistory ? (
-                                  JSON.parse(plots.find(p => p.name === newPlot.name)!.chatHistory!).map((m: any, idx: number) => (
-                                    <div key={idx} className={cn(
-                                      "p-2 rounded-lg text-[11px] max-w-[90%]",
-                                      m.role === "user" ? "bg-primary/10 ml-auto text-primary-dark" : "bg-white dark:bg-slate-800 shadow-sm border border-slate-100"
-                                    )}>
-                                      <span className="font-bold block mb-1 opacity-50 uppercase text-[9px]">
-                                        {m.role === "user" ? "Produtor" : "AgriSat IA"}
-                                      </span>
-                                      {m.content}
-                                    </div>
-                                  ))
-                                ) : (
-                                  <p className="text-[10px] text-slate-400 text-center py-4 italic">
-                                    Inicie uma conversa técnica sobre este talhão...
-                                  </p>
-                                )}
-                                {chatMutation.isPending && (
-                                  <div className="bg-white dark:bg-slate-800 p-2 rounded-lg text-[11px] max-w-[90%] shadow-sm border border-slate-100 animate-pulse">
-                                    Digitando...
-                                  </div>
-                                )}
-                              </div>
-
-                              <div className="flex gap-2">
-                                <Input
-                                  placeholder="Pergunte sobre o solo, clima ou plantio..."
-                                  className="text-xs h-9"
-                                  value={chatMessage}
-                                  onChange={(e) => setChatMessage(e.target.value)}
-                                  onKeyDown={(e) => {
-                                    if (e.key === "Enter" && chatMessage) {
-                                      const p = dbPlots.find(idx => idx.name === newPlot.name);
-                                      if (p) chatMutation.mutate({ id: p.id, message: chatMessage });
-                                    }
-                                  }}
-                                />
-                                <Button
-                                  size="icon"
-                                  className="h-9 w-9 shrink-0"
-                                  disabled={!chatMessage || chatMutation.isPending}
-                                  onClick={() => {
-                                    const p = dbPlots.find(idx => idx.name === newPlot.name);
-                                    if (p) chatMutation.mutate({ id: p.id, message: chatMessage });
-                                  }}
-                                >
-                                  <Send className="w-4 h-4" />
-                                </Button>
-                              </div>
-
-                              <Button
-                                onClick={() => {
-                                  const p = dbPlots.find(idx => idx.name === newPlot.name);
-                                  if (p) analyzeMutation.mutate(p.id);
-                                }}
-                                variant="ghost"
-                                className="w-full gap-2 text-[10px] text-slate-400 hover:text-primary"
-                                disabled={analyzeMutation.isPending}
-                              >
-                                {analyzeMutation.isPending ? <Activity className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
-                                Atualizar Análise Base
-                              </Button>
-                            </div>
-                          )}
-                        </div>
-
-                        <DialogFooter className="mt-8">
-                          <Button
-                            onClick={addPlot}
-                            className="w-full flex items-center justify-center gap-2 py-6 text-base"
-                            disabled={!newPlot.name || !newPlot.lat || !newPlot.lng || polygonPoints.length < 4}
-                          >
-                            <Layers className="w-4 h-4" />
-                            {polygonPoints.length < 4 ? `Marque ${4 - polygonPoints.length} pontos para salvar` : "Registrar Talhão"}
-                          </Button>
-                        </DialogFooter>
                       </div>
                     </div>
-                  </DialogContent>
-                </Dialog>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {plots.map(plot => (
-                  <Card key={plot.id} className="glass-panel overflow-hidden group relative">
-                    <div className="h-32 bg-slate-200 relative">
-                      <img src={satelliteFarm} className="w-full h-full object-cover opacity-50" />
-                      <div className="absolute inset-0 flex items-center justify-center font-bold text-slate-800 text-xl">{plot.name}</div>
-                      <Button
-                        variant="destructive"
-                        size="icon"
-                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8"
-                        onClick={() => removePlot(plot.id)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                    <CardContent className="p-4 space-y-3">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-slate-500">Cultura</span>
-                        <span className="font-medium">{plot.crop}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-slate-500">Área</span>
-                        <span className="font-medium">{plot.area} ha</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-slate-500">Saúde</span>
-                        <Badge variant="outline" className="text-primary border-primary/20 bg-primary/5">{plot.health}%</Badge>
-                      </div>
-
-                      <div className="pt-2 mt-2 border-t border-slate-100 dark:border-slate-800">
-                        <div className="flex items-center gap-2 text-[10px] font-mono text-slate-400">
-                          <MapPin className="w-3 h-3" /> {plot.lat}, {plot.lng}
-                        </div>
-                        <div className="flex items-center gap-2 text-[10px] font-mono text-slate-400 mt-0.5">
-                          <Activity className="w-3 h-3" /> Elev: {plot.altitude}m
-                        </div>
-                      </div>
-
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full mt-2 group-hover:bg-primary group-hover:text-white transition-colors"
-                        onClick={() => viewOnMap(plot)}
-                      >
-                        Mapear Terreno
-                      </Button>
-                    </CardContent>
                   </Card>
-                ))}
-                {plots.length === 0 && (
-                  <div className="col-span-full py-12 text-center text-slate-500 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
-                    Nenhum talhão registrado. Adicione um para iniciar o monitoramento.
-                  </div>
                 )}
               </div>
-            </div>
-          )}
+            )}
+            {activeTab === "plots" && (
+              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-2xl font-heading font-bold text-slate-900 dark:text-white">Gerenciamento de Talhões</h2>
+                  <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button
+                        className="gap-2 shadow-lg hover:shadow-primary/20 transition-all"
+                        onClick={() => {
+                          setNewPlot({ name: "", crop: "Soja", area: "", lat: "", lng: "", altitude: "" });
+                          setPolygonPoints([]);
+                          setMapFocus({ center: [-11.2027, 17.8739], zoom: 6 });
+                        }}
+                      >
+                        <Plus className="w-4 h-4" /> Adicionar Talhão
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[1000px] p-0 overflow-hidden border-0 gap-0 relative">
+                      {isSwitchingPlot && (
+                        <div className="absolute inset-0 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm z-[1100] flex flex-col items-center justify-center animate-in fade-in duration-300">
+                          <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
+                          <div className="text-primary font-bold tracking-widest text-xs uppercase animate-pulse">Sincronizando Telemetria...</div>
+                        </div>
+                      )}
+                      <div className="flex flex-col md:flex-row h-full min-h-[500px] md:h-[600px] max-h-[90vh]">
+                        {/* Map Section */}
+                        <div className="w-full md:flex-1 relative z-0 border-r border-slate-200 dark:border-slate-800 min-h-[300px] md:min-h-full">
+                          <MapContainer
+                            center={mapFocus.center}
+                            zoom={mapFocus.zoom}
+                            style={{ height: '100%', width: '100%', minHeight: '100%' }}
+                            scrollWheelZoom={true}
+                          >
+                            <MapController center={mapFocus.center} zoom={mapFocus.zoom} />
+                            <TileLayer
+                              attribution='&copy; Google Maps'
+                              url="https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}"
+                              subdomains={['mt0', 'mt1', 'mt2', 'mt3']}
+                            />
 
+                            {/* Weather Heatmap Layers */}
+                            {activeWeatherLayer && (
+                              <TileLayer
+                                key={activeWeatherLayer}
+                                attribution='&copy; OpenWeatherMap'
+                                url={`https://tile.openweathermap.org/map/${activeWeatherLayer}/{z}/{x}/{y}.png?appid=${import.meta.env.VITE_OPENWEATHER_API_KEY || 'de23633304cc83584c64369524097f74'}`}
+                                opacity={0.6}
+                                zIndex={500}
+                              />
+                            )}
+
+                            <MapEvents
+                              onMapChange={(center, zoom) => setMapFocus({ center, zoom })}
+                              onLocationSelect={(lat, lng) => {
+                                if (!newPlot.lat || !newPlot.lng) {
+                                  // Primeiro clique: Centro e Telemetria
+                                  const simulatedAlt = Math.floor((Math.abs(lat) * 15) + (Math.abs(lng) * 8) + 350);
+                                  setNewPlot(prev => ({
+                                    ...prev,
+                                    lat: lat.toFixed(6),
+                                    lng: lng.toFixed(6),
+                                    altitude: simulatedAlt.toString()
+                                  }));
+                                  toast({
+                                    title: "Centro Definido",
+                                    description: "Agora clique em 4 pontos para delimitar a área.",
+                                  });
+                                } else if (polygonPoints.length < 4) {
+                                  // Próximos 4 cliques: Polígono
+                                  const newPoints: [number, number][] = [...polygonPoints, [lat, lng]];
+                                  setPolygonPoints(newPoints);
+
+                                  if (newPoints.length === 4) {
+                                    // Calcular área automaticamente
+                                    const areaHectares = calculateArea(newPoints);
+                                    setNewPlot(prev => ({ ...prev, area: areaHectares.toString() }));
+                                    toast({
+                                      title: "Zona Delimitada",
+                                      description: `Área de ${areaHectares}ha calculada automaticamente.`,
+                                    });
+                                  }
+                                }
+                              }}
+                            />
+                            {newPlot.lat && newPlot.lng && (
+                              <Marker position={[Number(newPlot.lat), Number(newPlot.lng)]} />
+                            )}
+                            {polygonPoints.length > 0 && (
+                              <Polygon
+                                positions={polygonPoints}
+                                pathOptions={{ color: 'yellow', fillColor: 'yellow', fillOpacity: 0.3 }}
+                              />
+                            )}
+                          </MapContainer>
+
+                          <WeatherLayerControl
+                            activeLayer={activeWeatherLayer}
+                            onLayerSelect={setActiveWeatherLayer}
+                            layers={weatherLayers}
+                          />
+                          <div className="absolute top-4 left-4 z-[1000] space-y-2">
+                            <div className="bg-white/90 backdrop-blur p-2 rounded-lg shadow-xl border border-slate-200 pointer-events-none">
+                              <span className="text-[10px] uppercase font-bold text-primary flex items-center gap-1">
+                                <Activity className="w-3 h-3" /> Modo: {!newPlot.lat ? "Definir Centro" : polygonPoints.length < 4 ? `Delimitar (${polygonPoints.length}/4)` : "Pronto"}
+                              </span>
+                            </div>
+                            <div className="bg-white/90 backdrop-blur p-2 rounded-lg shadow-xl border border-slate-200 pointer-events-none">
+                              <span className="text-[10px] font-mono text-slate-800 flex items-center gap-1">
+                                <MapPin className="w-3 h-3 text-primary" />
+                                {!newPlot.lat ? "1º clique: Centro do Talhão" : polygonPoints.length < 4 ? "Clique nos limites da área" : "Área Delimitada com Sucesso"}
+                              </span>
+                            </div>
+                          </div>
+                          {newPlot.lat && (
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              className="absolute bottom-4 right-4 z-[1000] h-8 text-[10px] shadow-lg"
+                              onClick={() => {
+                                setNewPlot(prev => ({ ...prev, lat: "", lng: "", altitude: "", area: "" }));
+                                setPolygonPoints([]);
+                                toast({
+                                  title: "Localização Limpa",
+                                  description: "O marcador central e os pontos foram removidos.",
+                                });
+                              }}
+                            >
+                              <X className="w-3 h-3 mr-1" /> Limpar Localização
+                            </Button>
+                          )}
+                          {polygonPoints.length > 0 && !newPlot.lat && (
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              className="absolute bottom-4 left-4 z-[1000] h-8 text-[10px]"
+                              onClick={() => { setPolygonPoints([]); setNewPlot(p => ({ ...p, area: "" })); }}
+                            >
+                              <Trash2 className="w-3 h-3 mr-1" /> Limpar Pontos
+                            </Button>
+                          )}
+                        </div>
+
+                        {/* Form Section */}
+                        <div className="w-full md:w-2/5 p-6 flex flex-col bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 overflow-y-auto">
+                          <DialogHeader className="mb-6">
+                            <DialogTitle className="text-xl font-heading">Novo Mapeamento</DialogTitle>
+                            <DialogDescription>
+                              Insira os detalhes do terreno e as coordenadas geográficas.
+                            </DialogDescription>
+                          </DialogHeader>
+
+                          <div className="space-y-4 flex-1">
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="name">Identificação</Label>
+                                <Input id="name" value={newPlot.name} onChange={(e) => setNewPlot({ ...newPlot, name: e.target.value })} placeholder="Ex: Talhão 04" />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="crop">Cultura</Label>
+                                <Select value={newPlot.crop} onValueChange={(v) => setNewPlot({ ...newPlot, crop: v })}>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Cultura" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="Soja">Soja</SelectItem>
+                                    <SelectItem value="Milho">Milho</SelectItem>
+                                    <SelectItem value="Algodão">Algodão</SelectItem>
+                                    <SelectItem value="Trigo">Trigo</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="area">Área Total (Equitários)</Label>
+                              <div className="relative">
+                                <Input id="area" type="number" value={newPlot.area} onChange={(e) => setNewPlot({ ...newPlot, area: e.target.value })} placeholder="0.00" />
+                                <span className="absolute right-3 top-2.5 text-xs text-slate-400">ha</span>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="lat">Latitude</Label>
+                                <Input id="lat" value={newPlot.lat} onChange={(e) => setNewPlot({ ...newPlot, lat: e.target.value })} placeholder="-12.3456" />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="lng">Longitude</Label>
+                                <Input id="lng" value={newPlot.lng} onChange={(e) => setNewPlot({ ...newPlot, lng: e.target.value })} placeholder="-45.6789" />
+                              </div>
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="altitude">Altitude (Metros)</Label>
+                              <div className="relative">
+                                <Input id="altitude" value={newPlot.altitude} onChange={(e) => setNewPlot({ ...newPlot, altitude: e.target.value })} placeholder="Ex: 520" />
+                                <span className="absolute right-3 top-2.5 text-xs text-slate-400">m</span>
+                              </div>
+                            </div>
+
+                            {liveTelemetry && (
+                              <div className="grid grid-cols-2 gap-2 py-2">
+                                <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-100 dark:border-blue-800">
+                                  <div className="text-[10px] text-blue-600 uppercase font-bold">Solo (V-Sensor)</div>
+                                  <div className="text-lg font-bold text-blue-900 dark:text-blue-100">{liveTelemetry.soil.moisture}%</div>
+                                  <div className="text-[9px] text-blue-500">{liveTelemetry.soil.status}</div>
+                                </div>
+                                <div className="p-2 bg-amber-50 dark:bg-amber-900/20 rounded border border-amber-100 dark:border-amber-800">
+                                  <div className="text-[10px] text-amber-600 uppercase font-bold">Clima (Live Satélite)</div>
+                                  <div className="text-lg font-bold text-amber-900 dark:text-amber-100">{liveTelemetry.weather.temp}°C</div>
+                                  <div className="text-[9px] text-amber-500">{liveTelemetry.weather.description}</div>
+                                </div>
+                              </div>
+                            )}
+
+                            {newPlot.analysis && (
+                              <div className="p-4 bg-primary/5 rounded-lg border border-primary/20 space-y-2">
+                                <h4 className="text-xs font-bold text-primary flex items-center gap-1 uppercase">
+                                  <Activity className="w-3 h-3" /> Análise Agronômica Groq AI
+                                </h4>
+                                <p className="text-[11px] text-slate-700 dark:text-slate-300 leading-relaxed italic">
+                                  "{newPlot.analysis}"
+                                </p>
+                              </div>
+                            )}
+
+                            {dbPlots.find(p => p.name === newPlot.name && p.lat === newPlot.lat) && (
+                              <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+                                <h4 className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2">
+                                  <MessageSquare className="w-3 h-3" /> Chat Agrosatelite IA
+                                </h4>
+
+                                <div className="max-h-[200px] overflow-y-auto space-y-3 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-200 dark:border-slate-800">
+                                  {plots.find(p => p.name === newPlot.name)?.chatHistory ? (
+                                    JSON.parse(plots.find(p => p.name === newPlot.name)!.chatHistory!).map((m: any, idx: number) => (
+                                      <div key={idx} className={cn(
+                                        "p-2 rounded-lg text-[11px] max-w-[90%]",
+                                        m.role === "user" ? "bg-primary/10 ml-auto text-primary-dark" : "bg-white dark:bg-slate-800 shadow-sm border border-slate-100"
+                                      )}>
+                                        <span className="font-bold block mb-1 opacity-50 uppercase text-[9px]">
+                                          {m.role === "user" ? "Produtor" : "AgriSat IA"}
+                                        </span>
+                                        {m.content}
+                                      </div>
+                                    ))
+                                  ) : (
+                                    <p className="text-[10px] text-slate-400 text-center py-4 italic">
+                                      Inicie uma conversa técnica sobre este talhão...
+                                    </p>
+                                  )}
+                                  {chatMutation.isPending && (
+                                    <div className="bg-white dark:bg-slate-800 p-2 rounded-lg text-[11px] max-w-[90%] shadow-sm border border-slate-100 animate-pulse">
+                                      Digitando...
+                                    </div>
+                                  )}
+                                </div>
+
+                                <div className="flex gap-2">
+                                  <Input
+                                    placeholder="Pergunte sobre o solo, clima ou plantio..."
+                                    className="text-xs h-9"
+                                    value={chatMessage}
+                                    onChange={(e) => setChatMessage(e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter" && chatMessage) {
+                                        const p = dbPlots.find(idx => idx.name === newPlot.name);
+                                        if (p) chatMutation.mutate({ id: p.id, message: chatMessage });
+                                      }
+                                    }}
+                                  />
+                                  <Button
+                                    size="icon"
+                                    className="h-9 w-9 shrink-0"
+                                    disabled={!chatMessage || chatMutation.isPending}
+                                    onClick={() => {
+                                      const p = dbPlots.find(idx => idx.name === newPlot.name);
+                                      if (p) chatMutation.mutate({ id: p.id, message: chatMessage });
+                                    }}
+                                  >
+                                    <Send className="w-4 h-4" />
+                                  </Button>
+                                </div>
+
+                                <Button
+                                  onClick={() => {
+                                    const p = dbPlots.find(idx => idx.name === newPlot.name);
+                                    if (p) analyzeMutation.mutate(p.id);
+                                  }}
+                                  variant="ghost"
+                                  className="w-full gap-2 text-[10px] text-slate-400 hover:text-primary"
+                                  disabled={analyzeMutation.isPending}
+                                >
+                                  {analyzeMutation.isPending ? <Activity className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                                  Atualizar Análise Base
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+
+                          <DialogFooter className="mt-8">
+                            <Button
+                              onClick={addPlot}
+                              className="w-full flex items-center justify-center gap-2 py-6 text-base"
+                              disabled={!newPlot.name || !newPlot.lat || !newPlot.lng || polygonPoints.length < 4}
+                            >
+                              <Layers className="w-4 h-4" />
+                              {polygonPoints.length < 4 ? `Marque ${4 - polygonPoints.length} pontos para salvar` : "Registrar Talhão"}
+                            </Button>
+                          </DialogFooter>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {plots.map(plot => (
+                    <Card key={plot.id} className="glass-panel overflow-hidden group relative">
+                      <div className="h-32 bg-slate-200 relative">
+                        <img src={satelliteFarm} className="w-full h-full object-cover opacity-50" />
+                        <div className="absolute inset-0 flex items-center justify-center font-bold text-slate-800 text-xl">{plot.name}</div>
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8"
+                          onClick={() => removePlot(plot.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                      <CardContent className="p-4 space-y-3">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-500">Cultura</span>
+                          <span className="font-medium">{plot.crop}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-500">Área</span>
+                          <span className="font-medium">{plot.area} ha</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-500">Saúde</span>
+                          <Badge variant="outline" className="text-primary border-primary/20 bg-primary/5">{plot.health}%</Badge>
+                        </div>
+
+                        <div className="pt-2 mt-2 border-t border-slate-100 dark:border-slate-800">
+                          <div className="flex items-center gap-2 text-[10px] font-mono text-slate-400">
+                            <MapPin className="w-3 h-3" /> {plot.lat}, {plot.lng}
+                          </div>
+                          <div className="flex items-center gap-2 text-[10px] font-mono text-slate-400 mt-0.5">
+                            <Activity className="w-3 h-3" /> Elev: {plot.altitude}m
+                          </div>
+                        </div>
+
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full mt-2 group-hover:bg-primary group-hover:text-white transition-colors"
+                          onClick={() => viewOnMap(plot)}
+                        >
+                          Mapear Terreno
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ))}
+                  {plots.length === 0 && (
+                    <div className="col-span-full py-12 text-center text-slate-500 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
+                      Nenhum talhão registrado. Adicione um para iniciar o monitoramento.
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+          </div>
         </div>
-    </div>
       </main >
     </div >
   );
