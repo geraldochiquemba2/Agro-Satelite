@@ -234,6 +234,7 @@ export default function Dashboard() {
 
   const [selectedProvince, setSelectedProvince] = useState<any>(null);
   const [isSwitchingProvince, setIsSwitchingProvince] = useState(false);
+  const [isSwitchingPlot, setIsSwitchingPlot] = useState(false);
 
   const handleProvinceSelect = (province: any) => {
     if (selectedProvince?.name === province.name) return;
@@ -265,6 +266,7 @@ export default function Dashboard() {
   };
 
   const viewOnMap = (plot: Plot) => {
+    setIsSwitchingPlot(true);
     setNewPlot({
       name: plot.name,
       crop: plot.crop,
@@ -276,12 +278,15 @@ export default function Dashboard() {
     });
     // ... resto ...
     if (plot.boundaryPoints) {
-      setPolygonPoints(plot.boundaryPoints);
+      setPolygonPoints(JSON.parse(plot.boundaryPoints));
     } else {
       setPolygonPoints([]);
     }
     setMapFocus({ center: [Number(plot.lat), Number(plot.lng)], zoom: 16 });
     setIsAddDialogOpen(true);
+
+    // Pequeno delay para sensação de sincronização
+    setTimeout(() => setIsSwitchingPlot(false), 600);
   };
 
   const removePlot = (id: string) => {
@@ -624,7 +629,13 @@ export default function Dashboard() {
                         <Plus className="w-4 h-4" /> Adicionar Talhão
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-[1000px] p-0 overflow-hidden border-0 gap-0">
+                    <DialogContent className="sm:max-w-[1000px] p-0 overflow-hidden border-0 gap-0 relative">
+                      {isSwitchingPlot && (
+                        <div className="absolute inset-0 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm z-[1100] flex flex-col items-center justify-center animate-in fade-in duration-300">
+                          <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
+                          <div className="text-primary font-bold tracking-widest text-xs uppercase animate-pulse">Sincronizando Telemetria...</div>
+                        </div>
+                      )}
                       <div className="flex flex-col md:flex-row h-[600px] max-h-[90vh]">
                         {/* Map Section */}
                         <div className="w-full md:w-3/5 h-64 md:h-full relative bg-slate-200 z-0">
@@ -791,7 +802,7 @@ export default function Dashboard() {
                                   <div className="text-[9px] text-blue-500">{liveTelemetry.soil.status}</div>
                                 </div>
                                 <div className="p-2 bg-amber-50 dark:bg-amber-900/20 rounded border border-amber-100 dark:border-amber-800">
-                                  <div className="text-[10px] text-amber-600 uppercase font-bold">Clima (Live)</div>
+                                  <div className="text-[10px] text-amber-600 uppercase font-bold">Clima (Live Satélite)</div>
                                   <div className="text-lg font-bold text-amber-900 dark:text-amber-100">{liveTelemetry.weather.temp}°C</div>
                                   <div className="text-[9px] text-amber-500">{liveTelemetry.weather.description}</div>
                                 </div>
