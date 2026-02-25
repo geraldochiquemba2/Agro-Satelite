@@ -908,16 +908,16 @@ export default function Dashboard() {
                         <Plus className="w-4 h-4" /> Adicionar Talhão
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-[1000px] p-0 overflow-hidden border-0 gap-0 relative">
+                    <DialogContent className="sm:max-w-[1000px] p-0 overflow-hidden border-0 gap-0">
                       {isSwitchingPlot && (
                         <div className="absolute inset-0 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm z-[1100] flex flex-col items-center justify-center animate-in fade-in duration-300">
                           <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
                           <div className="text-primary font-bold tracking-widest text-xs uppercase animate-pulse">Sincronizando Telemetria...</div>
                         </div>
                       )}
-                      <div className="flex flex-col md:flex-row h-full min-h-[500px] md:h-[600px] max-h-[90vh]">
+                      <div className="flex flex-col md:flex-row w-full max-h-[85vh] md:h-[600px] overflow-hidden">
                         {/* Map Section */}
-                        <div className="w-full md:flex-1 relative z-0 border-r border-slate-200 dark:border-slate-800 min-h-[300px] md:min-h-full">
+                        <div className="w-full md:flex-1 relative z-0 border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-800 min-h-[250px] md:min-h-full">
                           <MapContainer
                             center={mapFocus.center}
                             zoom={mapFocus.zoom}
@@ -1010,11 +1010,11 @@ export default function Dashboard() {
                               variant="destructive"
                               className="absolute bottom-4 right-4 z-[1000] h-8 text-[10px] shadow-lg"
                               onClick={() => {
-                                setNewPlot(prev => ({ ...prev, lat: "", lng: "", altitude: "", area: "" }));
+                                setNewPlot(prev => ({ ...prev, lat: "", lng: "", altitude: "", area: "", analysis: "" }));
                                 setPolygonPoints([]);
                                 toast({
                                   title: "Localização Limpa",
-                                  description: "O marcador central e os pontos foram removidos.",
+                                  description: "O marcador central e os dados foram removidos.",
                                 });
                               }}
                             >
@@ -1034,163 +1034,165 @@ export default function Dashboard() {
                         </div>
 
                         {/* Form Section */}
-                        <div className="w-full md:w-2/5 p-6 flex flex-col bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 overflow-y-auto">
-                          <DialogHeader className="mb-6">
-                            <DialogTitle className="text-xl font-heading">Novo Mapeamento</DialogTitle>
-                            <DialogDescription>
-                              Insira os detalhes do terreno e as coordenadas geográficas.
-                            </DialogDescription>
-                          </DialogHeader>
+                        <div className="w-full md:w-2/5 flex flex-col bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800">
+                          <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+                            <DialogHeader className="mb-6">
+                              <DialogTitle className="text-xl font-heading">Novo Mapeamento</DialogTitle>
+                              <DialogDescription>
+                                Insira os detalhes do terreno e as coordenadas geográficas.
+                              </DialogDescription>
+                            </DialogHeader>
 
-                          <div className="space-y-4 flex-1">
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="space-y-2">
-                                <Label htmlFor="name">Identificação</Label>
-                                <Input id="name" value={newPlot.name} onChange={(e) => setNewPlot({ ...newPlot, name: e.target.value })} placeholder="Ex: Talhão 04" />
-                              </div>
-                              <div className="space-y-2">
-                                <Label htmlFor="crop">Cultura</Label>
-                                <Select value={newPlot.crop} onValueChange={(v) => setNewPlot({ ...newPlot, crop: v })}>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Cultura" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="Soja">Soja</SelectItem>
-                                    <SelectItem value="Milho">Milho</SelectItem>
-                                    <SelectItem value="Algodão">Algodão</SelectItem>
-                                    <SelectItem value="Trigo">Trigo</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                            </div>
-
-                            <div className="space-y-2">
-                              <Label htmlFor="area">Área Total (Equitários)</Label>
-                              <div className="relative">
-                                <Input id="area" type="number" value={newPlot.area} onChange={(e) => setNewPlot({ ...newPlot, area: e.target.value })} placeholder="0.00" />
-                                <span className="absolute right-3 top-2.5 text-xs text-slate-400">ha</span>
-                              </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="space-y-2">
-                                <Label htmlFor="lat">Latitude</Label>
-                                <Input id="lat" value={newPlot.lat} onChange={(e) => setNewPlot({ ...newPlot, lat: e.target.value })} placeholder="-12.3456" />
-                              </div>
-                              <div className="space-y-2">
-                                <Label htmlFor="lng">Longitude</Label>
-                                <Input id="lng" value={newPlot.lng} onChange={(e) => setNewPlot({ ...newPlot, lng: e.target.value })} placeholder="-45.6789" />
-                              </div>
-                            </div>
-
-                            <div className="space-y-2">
-                              <Label htmlFor="altitude">Altitude (Metros)</Label>
-                              <div className="relative">
-                                <Input id="altitude" value={newPlot.altitude} onChange={(e) => setNewPlot({ ...newPlot, altitude: e.target.value })} placeholder="Ex: 520" />
-                                <span className="absolute right-3 top-2.5 text-xs text-slate-400">m</span>
-                              </div>
-                            </div>
-
-                            {liveTelemetry && (
-                              <div className="grid grid-cols-2 gap-2 py-2">
-                                <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-100 dark:border-blue-800">
-                                  <div className="text-[10px] text-blue-600 uppercase font-bold">Solo (V-Sensor)</div>
-                                  <div className="text-lg font-bold text-blue-900 dark:text-blue-100">{liveTelemetry.soil.moisture}%</div>
-                                  <div className="text-[9px] text-blue-500">{liveTelemetry.soil.status}</div>
+                            <div className="space-y-4">
+                              <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                  <Label htmlFor="name">Identificação</Label>
+                                  <Input id="name" value={newPlot.name} onChange={(e) => setNewPlot({ ...newPlot, name: e.target.value })} placeholder="Ex: Talhão 04" />
                                 </div>
-                                <div className="p-2 bg-amber-50 dark:bg-amber-900/20 rounded border border-amber-100 dark:border-amber-800">
-                                  <div className="text-[10px] text-amber-600 uppercase font-bold">Clima (Live Satélite)</div>
-                                  <div className="text-lg font-bold text-amber-900 dark:text-amber-100">{liveTelemetry.weather.temp}°C</div>
-                                  <div className="text-[9px] text-amber-500">{liveTelemetry.weather.description}</div>
+                                <div className="space-y-2">
+                                  <Label htmlFor="crop">Cultura</Label>
+                                  <Select value={newPlot.crop} onValueChange={(v) => setNewPlot({ ...newPlot, crop: v })}>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Cultura" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="Soja">Soja</SelectItem>
+                                      <SelectItem value="Milho">Milho</SelectItem>
+                                      <SelectItem value="Algodão">Algodão</SelectItem>
+                                      <SelectItem value="Trigo">Trigo</SelectItem>
+                                    </SelectContent>
+                                  </Select>
                                 </div>
                               </div>
-                            )}
 
-                            {newPlot.analysis && (
-                              <div className="p-4 bg-primary/5 rounded-lg border border-primary/20 space-y-2">
-                                <h4 className="text-xs font-bold text-primary flex items-center gap-1 uppercase">
-                                  <Activity className="w-3 h-3" /> Análise Agronômica Groq AI
-                                </h4>
-                                <p className="text-[11px] text-slate-700 dark:text-slate-300 leading-relaxed italic">
-                                  "{newPlot.analysis}"
-                                </p>
+                              <div className="space-y-2">
+                                <Label htmlFor="area">Área Total (Equitários)</Label>
+                                <div className="relative">
+                                  <Input id="area" type="number" value={newPlot.area} onChange={(e) => setNewPlot({ ...newPlot, area: e.target.value })} placeholder="0.00" />
+                                  <span className="absolute right-3 top-2.5 text-xs text-slate-400">ha</span>
+                                </div>
                               </div>
-                            )}
 
-                            {dbPlots.find(p => p.name === newPlot.name && p.lat === newPlot.lat) && (
-                              <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-800">
-                                <h4 className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2">
-                                  <MessageSquare className="w-3 h-3" /> Chat Agrosatelite IA
-                                </h4>
+                              <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                  <Label htmlFor="lat">Latitude</Label>
+                                  <Input id="lat" value={newPlot.lat} onChange={(e) => setNewPlot({ ...newPlot, lat: e.target.value })} placeholder="-12.3456" />
+                                </div>
+                                <div className="space-y-2">
+                                  <Label htmlFor="lng">Longitude</Label>
+                                  <Input id="lng" value={newPlot.lng} onChange={(e) => setNewPlot({ ...newPlot, lng: e.target.value })} placeholder="-45.6789" />
+                                </div>
+                              </div>
 
-                                <div className="max-h-[200px] overflow-y-auto space-y-3 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-200 dark:border-slate-800">
-                                  {plots.find(p => p.name === newPlot.name)?.chatHistory ? (
-                                    JSON.parse(plots.find(p => p.name === newPlot.name)!.chatHistory!).map((m: any, idx: number) => (
-                                      <div key={idx} className={cn(
-                                        "p-2 rounded-lg text-[11px] max-w-[90%]",
-                                        m.role === "user" ? "bg-primary/10 ml-auto text-primary-dark" : "bg-white dark:bg-slate-800 shadow-sm border border-slate-100"
-                                      )}>
-                                        <span className="font-bold block mb-1 opacity-50 uppercase text-[9px]">
-                                          {m.role === "user" ? "Produtor" : "AgriSat IA"}
-                                        </span>
-                                        {m.content}
+                              <div className="space-y-2">
+                                <Label htmlFor="altitude">Altitude (Metros)</Label>
+                                <div className="relative">
+                                  <Input id="altitude" value={newPlot.altitude} onChange={(e) => setNewPlot({ ...newPlot, altitude: e.target.value })} placeholder="Ex: 520" />
+                                  <span className="absolute right-3 top-2.5 text-xs text-slate-400">m</span>
+                                </div>
+                              </div>
+
+                              {newPlot.lat && newPlot.lng && liveTelemetry && (
+                                <div className="grid grid-cols-2 gap-2 py-2">
+                                  <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-100 dark:border-blue-800">
+                                    <div className="text-[10px] text-blue-600 uppercase font-bold">Solo (V-Sensor)</div>
+                                    <div className="text-lg font-bold text-blue-900 dark:text-blue-100">{liveTelemetry.soil.moisture}%</div>
+                                    <div className="text-[9px] text-blue-500">{liveTelemetry.soil.status}</div>
+                                  </div>
+                                  <div className="p-2 bg-amber-50 dark:bg-amber-900/20 rounded border border-amber-100 dark:border-amber-800">
+                                    <div className="text-[10px] text-amber-600 uppercase font-bold">Clima (Live Satélite)</div>
+                                    <div className="text-lg font-bold text-amber-900 dark:text-amber-100">{liveTelemetry.weather.temp}°C</div>
+                                    <div className="text-[9px] text-amber-500">{liveTelemetry.weather.description}</div>
+                                  </div>
+                                </div>
+                              )}
+
+                              {newPlot.analysis && (
+                                <div className="p-4 bg-primary/5 rounded-lg border border-primary/20 space-y-2">
+                                  <h4 className="text-xs font-bold text-primary flex items-center gap-1 uppercase">
+                                    <Activity className="w-3 h-3" /> Análise Agronômica Groq AI
+                                  </h4>
+                                  <p className="text-[11px] text-slate-700 dark:text-slate-300 leading-relaxed italic">
+                                    "{newPlot.analysis}"
+                                  </p>
+                                </div>
+                              )}
+
+                              {dbPlots.find(p => p.name === newPlot.name && p.lat === newPlot.lat) && (
+                                <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+                                  <h4 className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2">
+                                    <MessageSquare className="w-3 h-3" /> Chat Agrosatelite IA
+                                  </h4>
+
+                                  <div className="max-h-[200px] overflow-y-auto space-y-3 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-200 dark:border-slate-800">
+                                    {plots.find(p => p.name === newPlot.name)?.chatHistory ? (
+                                      JSON.parse(plots.find(p => p.name === newPlot.name)!.chatHistory!).map((m: any, idx: number) => (
+                                        <div key={idx} className={cn(
+                                          "p-2 rounded-lg text-[11px] max-w-[90%]",
+                                          m.role === "user" ? "bg-primary/10 ml-auto text-primary-dark" : "bg-white dark:bg-slate-800 shadow-sm border border-slate-100"
+                                        )}>
+                                          <span className="font-bold block mb-1 opacity-50 uppercase text-[9px]">
+                                            {m.role === "user" ? "Produtor" : "AgriSat IA"}
+                                          </span>
+                                          {m.content}
+                                        </div>
+                                      ))
+                                    ) : (
+                                      <p className="text-[10px] text-slate-400 text-center py-4 italic">
+                                        Inicie uma conversa técnica sobre este talhão...
+                                      </p>
+                                    )}
+                                    {chatMutation.isPending && (
+                                      <div className="bg-white dark:bg-slate-800 p-2 rounded-lg text-[11px] max-w-[90%] shadow-sm border border-slate-100 animate-pulse">
+                                        Digitando...
                                       </div>
-                                    ))
-                                  ) : (
-                                    <p className="text-[10px] text-slate-400 text-center py-4 italic">
-                                      Inicie uma conversa técnica sobre este talhão...
-                                    </p>
-                                  )}
-                                  {chatMutation.isPending && (
-                                    <div className="bg-white dark:bg-slate-800 p-2 rounded-lg text-[11px] max-w-[90%] shadow-sm border border-slate-100 animate-pulse">
-                                      Digitando...
-                                    </div>
-                                  )}
-                                </div>
+                                    )}
+                                  </div>
 
-                                <div className="flex gap-2">
-                                  <Input
-                                    placeholder="Pergunte sobre o solo, clima ou plantio..."
-                                    className="text-xs h-9"
-                                    value={chatMessage}
-                                    onChange={(e) => setChatMessage(e.target.value)}
-                                    onKeyDown={(e) => {
-                                      if (e.key === "Enter" && chatMessage) {
+                                  <div className="flex gap-2">
+                                    <Input
+                                      placeholder="Pergunte sobre o solo, clima ou plantio..."
+                                      className="text-xs h-9"
+                                      value={chatMessage}
+                                      onChange={(e) => setChatMessage(e.target.value)}
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter" && chatMessage) {
+                                          const p = dbPlots.find(idx => idx.name === newPlot.name);
+                                          if (p) chatMutation.mutate({ id: p.id, message: chatMessage });
+                                        }
+                                      }}
+                                    />
+                                    <Button
+                                      size="icon"
+                                      className="h-9 w-9 shrink-0"
+                                      disabled={!chatMessage || chatMutation.isPending}
+                                      onClick={() => {
                                         const p = dbPlots.find(idx => idx.name === newPlot.name);
                                         if (p) chatMutation.mutate({ id: p.id, message: chatMessage });
-                                      }
-                                    }}
-                                  />
+                                      }}
+                                    >
+                                      <Send className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+
                                   <Button
-                                    size="icon"
-                                    className="h-9 w-9 shrink-0"
-                                    disabled={!chatMessage || chatMutation.isPending}
                                     onClick={() => {
                                       const p = dbPlots.find(idx => idx.name === newPlot.name);
-                                      if (p) chatMutation.mutate({ id: p.id, message: chatMessage });
+                                      if (p) analyzeMutation.mutate(p.id);
                                     }}
+                                    variant="ghost"
+                                    className="w-full gap-2 text-[10px] text-slate-400 hover:text-primary"
+                                    disabled={analyzeMutation.isPending}
                                   >
-                                    <Send className="w-4 h-4" />
+                                    {analyzeMutation.isPending ? <Activity className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                                    Atualizar Análise Base
                                   </Button>
                                 </div>
-
-                                <Button
-                                  onClick={() => {
-                                    const p = dbPlots.find(idx => idx.name === newPlot.name);
-                                    if (p) analyzeMutation.mutate(p.id);
-                                  }}
-                                  variant="ghost"
-                                  className="w-full gap-2 text-[10px] text-slate-400 hover:text-primary"
-                                  disabled={analyzeMutation.isPending}
-                                >
-                                  {analyzeMutation.isPending ? <Activity className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
-                                  Atualizar Análise Base
-                                </Button>
-                              </div>
-                            )}
+                              )}
+                            </div>
                           </div>
 
-                          <DialogFooter className="mt-8">
+                          <DialogFooter className="p-6 border-t border-slate-100 dark:border-slate-800 mt-0">
                             <Button
                               onClick={addPlot}
                               className="w-full flex items-center justify-center gap-2 py-6 text-base"
