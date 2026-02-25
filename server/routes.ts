@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { insertPlotSchema } from "@shared/schema";
 import { getPlotWeather, clearWeatherCache } from "./services/weatherService";
 import { estimateSoilTelemetry } from "./services/soilSimulationService";
+import { getAgronomicContext } from "./services/agronomyService";
 import { setupAuth } from "./auth";
 
 export async function registerRoutes(
@@ -28,7 +29,8 @@ export async function registerRoutes(
       const plot = await storage.createPlot({
         ...plotData,
         userId: req.user!.id,
-        health: plotData.health || (Math.floor(Math.random() * (95 - 75 + 1)) + 75).toString()
+        health: plotData.health || (Math.floor(Math.random() * (95 - 75 + 1)) + 75).toString(),
+        plantingDate: req.body.plantingDate || null
       });
       res.json(plot);
     } catch (err: any) {
@@ -91,27 +93,28 @@ export async function registerRoutes(
 
       const weather = await getPlotWeather(plot.lat, plot.lng);
       const soil = estimateSoilTelemetry(weather);
+      const agronomicContext = getAgronomicContext(plot.crop, weather.province, plot.plantingDate);
 
-      const prompt = `Você é um engenheiro agrônomo especialista em solos de Angola. 
-      Analise o seguinte talhão com dados de TELEMETRIA EM TEMPO REAL:
+      const prompt = `Você é um engenheiro agrônomo sênior especialista em solos de Angola. 
+      Analise o seguinte talhão com dados de TELEMETRIA EM TEMPO REAL e CONTEXTO AGRONÓMICO:
       - Nome: ${plot.name}
       - Cultura: ${plot.crop}
       - Área: ${plot.area} hectares
-      - Localização: ${plot.lat}, ${plot.lng} (Altitude: ${plot.altitude}m)
+      - Localização: ${plot.lat}, ${plot.lng} (Província: ${weather.province}, Altitude: ${plot.altitude}m)
+      - Data de Plantio: ${plot.plantingDate || "Não informada"}
+      - Fase de Crescimento: ${agronomicContext.growthStage}
       
-      CONDIÇÕES ATUAIS (Sensores Virtuais):
-      - Temperatura Ar: ${weather.temp}°C
-      - Humidade Ar: ${weather.humidity}%
-      - Vento: ${weather.windSpeed}km/h
-      - Chuva (1h): ${weather.rain}mm
+      CONDIÇÕES AMBIENTAIS:
+      - Temperatura Ar: ${weather.temp}°C | Humidade Ar: ${weather.humidity}%
+      - Chuva (1h): ${weather.rain}mm | Vento: ${weather.windSpeed}km/h
       - Humidade do Solo: ${soil.moisture}% (Status: ${soil.status})
-      - Evapotranspiração: ${soil.evapotranspiration}mm/h
+      
+      CONTEXTO TÉCNICO E CALENDÁRIO:
+      - Calendário: ${agronomicContext.calendar}
+      - Notas Técnicas para a Fase: ${agronomicContext.technicalTips}
 
-      Forneça um relatório técnico curto e direto (em português de Angola) contendo:
-      1. Avaliação do estresse hídrico e necessidade imediata de irrigação.
-      2. Impacto das condições climáticas atuais na cultura (${plot.crop}).
-      3. Recomendações de manejo para as próximas 24h.
-      Seja muito profissional, técnico e use os dados de telemetria para justificar sua análise.`;
+      Forneça um relatório técnico curto, direto e SUPER INTELIGENTE. 
+      Use o calendário para dizer se o agricultor está na janela certa e a fase de crescimento para dar conselhos exatos para este momento.`;
 
       const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
         method: "POST",
@@ -151,21 +154,27 @@ export async function registerRoutes(
 
       const weather = await getPlotWeather(plot.lat, plot.lng);
       const soil = estimateSoilTelemetry(weather);
+      const agronomicContext = getAgronomicContext(plot.crop, weather.province, plot.plantingDate);
 
       const systemContext = `Você é um assistente de IA agrícola integrado ao sistema AgriSat. 
       Você está analisando o talhão "${plot.name}" (${plot.crop}).
       
       DADOS TÉCNICOS:
       - Área: ${plot.area}ha
-      - Telemetria de GPS: ${plot.lat}, ${plot.lng} (Alt: ${plot.altitude}m)
-      - Fronteiras (Polígono): ${plot.boundaryPoints}
+      - Telemetria de GPS: ${plot.lat}, ${plot.lng} (Província: ${weather.province}, Alt: ${plot.altitude}m)
+      - Data de Plantio: ${plot.plantingDate || "Não informada"}
+      - Fase de Crescimento: ${agronomicContext.growthStage}
       
-      TELEMETRIA EM TEMPO REAL (AGORA):
+      TELEMETRIA EM TEMPO REAL:
       - Temp: ${weather.temp}°C | Humidade: ${weather.humidity}%
-      - Solo: ${soil.moisture}% (${soil.status}) | Evap: ${soil.evapotranspiration}mm/h
+      - Solo: ${soil.moisture}% (${soil.status})
       - Vento: ${weather.windSpeed}km/h | Chuva: ${weather.rain}mm
       
-      Responda em Português de Angola. Seja técnico e use os dados acima para responder às dúvidas do agricultor.`;
+      CONTEXTO AGRONÓMICO:
+      - Calendário Local: ${agronomicContext.calendar}
+      - Orientações Específicas: ${agronomicContext.technicalTips}
+      
+      Responda em Português de Angola. Seja técnico e use os dados acima para responder às dúvidas do agricultor de forma supra-contextualizada.`;
 
       const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
         method: "POST",
@@ -210,22 +219,30 @@ export async function registerRoutes(
       const { message, history = [], weatherContext = [] } = req.body;
       const plots = await storage.getPlotsByUser(req.user!.id);
 
-      const systemContext = `Você é o assistente Agrosatelite IA, um especialista em agronomia e monitoramento por satélite em Angola.
-      Você tem acesso aos dados técnicos do agricultor ${req.user!.name}.
+      // Enhance plots context with agronomic analysis
+      const enhancedPlots = plots.map(p => {
+        // Find weather based on province if available in context, or use default
+        const pWeather = weatherContext.find((w: any) => w.id === p.id) || { name: "Desconhecida" };
+        const agronomic = getAgronomicContext(p.crop, pWeather.name, p.plantingDate);
+        return `${p.name} (Cultura: ${p.crop}, Área: ${p.area}ha, Saúde: ${p.health}%, Fase: ${agronomic.growthStage}, Calendário: ${agronomic.calendar})`;
+      });
+
+      const systemContext = `Você é o assistente Agrosatelite IA, um engenheiro agrônomo sênior especialista em Angola.
+      Você tem acesso total aos dados técnicos e ao calendário agrícola do agricultor ${req.user!.name}.
       
-      ESTADO ATUAL DO AGRICULTOR:
+      ESTADO DETALHADO DOS TALHÕES:
       - Talhões Registrados: ${plots.length}
-      - Detalhes dos Talhões: ${plots.map(p => `${p.name} (${p.crop}, ${p.area}ha, Saúde: ${p.health}%)`).join(' | ')}
+      - Análise de Contexto: ${enhancedPlots.join(' | ')}
       
-      CONTEXTO METEOROLÓGICO (Províncias Selecionadas):
+      METEOROLOGIA GERAL:
       ${weatherContext.map((w: any) => `${w.name}: ${w.temp}°C, ${w.description}`).join(' | ')}
       
-      INSTRUÇÕES:
-      1. Responda em Português de Angola.
-      2. Seja extremamente técnico, prestativo e profissional.
-      3. Se o utilizador perguntar sobre um talhão específico, use os nomes citados acima.
-      4. Forneça recomendações baseadas no cruzamento entre a cultura, a saúde do talhão e o clima atual.
-      5. Se o agricultor não tiver talhões, incentive-o a registar o primeiro no mapa.`;
+      PODERES DE ANÁLISE:
+      1. Você sabe exatamente se o plantio foi feito na janela certa.
+      2. Você conhece as pragas e necessidades de cada fase de crescimento citada acima.
+      3. Você cruza o clima local com a saúde do talhão para dar avisos proativos.
+      
+      Responda em Português de Angola. Seja técnico, sênior e extremamente preciso nas recomendações.`;
 
       const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
         method: "POST",

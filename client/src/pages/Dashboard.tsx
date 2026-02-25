@@ -405,7 +405,7 @@ export default function Dashboard() {
     setLocation(`/dashboard/${tab}`);
   };
 
-  const [newPlot, setNewPlot] = useState({ name: "", crop: "Soja", area: "", lat: "", lng: "", altitude: "", analysis: "" });
+  const [newPlot, setNewPlot] = useState({ name: "", crop: "Soja", area: "", lat: "", lng: "", altitude: "", analysis: "", plantingDate: "" });
   const [polygonPoints, setPolygonPoints] = useState<[number, number][]>([]);
   const [mapFocus, setMapFocus] = useState<{ center: [number, number], zoom: number }>({ center: [-11.2027, 17.8739], zoom: 6 });
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -437,7 +437,7 @@ export default function Dashboard() {
     },
     onSuccess: (data: DbPlot) => {
       queryClient.invalidateQueries({ queryKey: ["/api/plots"] });
-      setNewPlot({ name: "", crop: "Soja", area: "", lat: "", lng: "", altitude: "", analysis: "" });
+      setNewPlot({ name: "", crop: "Soja", area: "", lat: "", lng: "", altitude: "", analysis: "", plantingDate: "" });
       setPolygonPoints([]);
       setIsAddDialogOpen(false);
 
@@ -566,7 +566,8 @@ export default function Dashboard() {
       lng: newPlot.lng,
       altitude: newPlot.altitude || "0",
       boundaryPoints: polygonPoints.length >= 3 ? JSON.stringify(polygonPoints) : null,
-      analysis: newPlot.analysis || null
+      analysis: newPlot.analysis || null,
+      plantingDate: newPlot.plantingDate || null
     };
 
     createPlotMutation.mutate(insertData);
@@ -581,7 +582,8 @@ export default function Dashboard() {
       lat: plot.lat,
       lng: plot.lng,
       altitude: plot.altitude,
-      analysis: plot.analysis || ""
+      analysis: plot.analysis || "",
+      plantingDate: (plot as any).plantingDate || ""
     });
 
     if (plot.boundaryPoints) {
@@ -820,7 +822,7 @@ export default function Dashboard() {
                       <Button
                         className="gap-2 shadow-lg hover:shadow-primary/20 transition-all"
                         onClick={() => {
-                          setNewPlot({ name: "", crop: "Soja", area: "", lat: "", lng: "", altitude: "", analysis: "" });
+                          setNewPlot({ name: "", crop: "Soja", area: "", lat: "", lng: "", altitude: "", analysis: "", plantingDate: "" });
                           setPolygonPoints([]);
                           setMapFocus({ center: [-11.2027, 17.8739], zoom: 6 });
                         }}
@@ -996,6 +998,17 @@ export default function Dashboard() {
                                   <Input id="area" type="number" value={newPlot.area} onChange={(e) => setNewPlot({ ...newPlot, area: e.target.value })} placeholder="0.00" />
                                   <span className="absolute right-3 top-2.5 text-xs text-slate-400">ha</span>
                                 </div>
+                              </div>
+
+                              <div className="space-y-2">
+                                <Label htmlFor="plantingDate">Data de Plantio</Label>
+                                <Input
+                                  id="plantingDate"
+                                  type="date"
+                                  value={newPlot.plantingDate}
+                                  onChange={(e) => setNewPlot({ ...newPlot, plantingDate: e.target.value })}
+                                />
+                                <p className="text-[10px] text-slate-500 italic">Essencial para a IA calcular a fase de crescimento e dar conselhos exatos.</p>
                               </div>
 
                               <div className="grid grid-cols-2 gap-4">

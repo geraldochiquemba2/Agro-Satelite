@@ -33,6 +33,7 @@ export const plots = pgTable("plots", {
   boundaryPoints: text("boundary_points"), // Armazena como JSON string
   analysis: text("analysis"), // Resultado da análise Groq AI
   chatHistory: text("chat_history"), // JSON array de mensagens do chat
+  plantingDate: text("planting_date"), // ISO string de data de plantio
 });
 
 export const insertPlotSchema = createInsertSchema(plots).omit({
