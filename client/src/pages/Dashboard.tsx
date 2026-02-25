@@ -12,7 +12,7 @@ import {
   Droplets, Map, Activity, CloudRain,
   Settings, User, Bell, ChevronRight, Menu, MapPin,
   Cloud, CloudLightning, Waves, Layers, Plus, Trash2, X, MessageSquare, Send, RefreshCw, CloudSun, Loader2,
-  Sprout, Sun, Wind, ThermometerSun, AlertTriangle, Sunrise, Eye, Gauge, Moon
+  Sprout, Sun, Wind, ThermometerSun, AlertTriangle, Sunrise, Eye, Gauge, Moon, Volume2, VolumeX
 } from "lucide-react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -36,6 +36,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetClose } from "@/components/ui/sheet";
 import { GlobalAIChat } from "@/components/dashboard/GlobalAIChat";
+import { useSpeech } from "@/hooks/use-speech";
 
 // Assets generated
 import satelliteFarm from "@/assets/images/satellite-farm.png";
@@ -217,6 +218,7 @@ function AIChatBox({ plot, chatMutation, analyzeMutation }: { plot: Plot, chatMu
   const history = plot.chatHistory ? JSON.parse(plot.chatHistory) : [];
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastMessageRef = useRef<HTMLDivElement>(null);
+  const { speak, stop, isSpeaking, isSupported, currentText } = useSpeech();
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -241,23 +243,41 @@ function AIChatBox({ plot, chatMutation, analyzeMutation }: { plot: Plot, chatMu
       >
         {history.length > 0 ? (
           history.map((m: any, idx: number) => (
-            <div
-              key={idx}
-              ref={idx === history.length - 1 ? lastMessageRef : null}
-              className={cn(
-                "p-3 rounded-2xl text-[11px] max-w-[90%] shadow-sm",
-                m.role === "user"
-                  ? "bg-primary text-white ml-auto"
-                  : "bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-100 dark:border-slate-700"
+            <div key={idx} className="flex flex-col">
+              <div
+                ref={idx === history.length - 1 ? lastMessageRef : null}
+                className={cn(
+                  "p-3 rounded-2xl text-[11px] max-w-[90%] shadow-sm",
+                  m.role === "user"
+                    ? "bg-primary text-white ml-auto"
+                    : "bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-100 dark:border-slate-700"
+                )}
+              >
+                <span className={cn(
+                  "font-bold block mb-1 uppercase text-[9px] opacity-70",
+                  m.role === "user" ? "text-white/80" : "text-primary"
+                )}>
+                  {m.role === "user" ? "Produtor" : "AgriSat IA"}
+                </span>
+                {m.content}
+              </div>
+              {/* TTS for AI messages */}
+              {m.role === "assistant" && isSupported && (
+                <button
+                  onClick={() => isSpeaking && currentText === m.content ? stop() : speak(m.content)}
+                  className={cn(
+                    "self-start mt-1 flex items-center gap-1 text-[9px] font-bold px-2 py-0.5 rounded-full transition-all",
+                    isSpeaking && currentText === m.content
+                      ? "bg-primary/15 text-primary animate-pulse"
+                      : "text-slate-400 hover:text-primary hover:bg-primary/5"
+                  )}
+                >
+                  {isSpeaking && currentText === m.content
+                    ? <><VolumeX className="w-3 h-3" /> Parar</>
+                    : <><Volume2 className="w-3 h-3" /> Ouvir</>
+                  }
+                </button>
               )}
-            >
-              <span className={cn(
-                "font-bold block mb-1 uppercase text-[9px] opacity-70",
-                m.role === "user" ? "text-white/80" : "text-primary"
-              )}>
-                {m.role === "user" ? "Produtor" : "AgriSat IA"}
-              </span>
-              {m.content}
             </div>
           ))
         ) : (
@@ -268,6 +288,7 @@ function AIChatBox({ plot, chatMutation, analyzeMutation }: { plot: Plot, chatMu
             <p className="text-[10px] text-slate-400 italic">
               Inicie uma conversa técnica sobre este talhão...
             </p>
+            {isSupported && <p className="text-[9px] text-primary/60">🔊 As respostas da IA podem ser ouvidas em voz alta</p>}
           </div>
         )}
         {chatMutation.isPending && (
