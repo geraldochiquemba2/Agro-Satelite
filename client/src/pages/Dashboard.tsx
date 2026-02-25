@@ -351,6 +351,7 @@ function AIAnalysisDialog({
   chatMutation: any,
   analyzeMutation: any
 }) {
+  const { speak, stop, isSpeaking, isSupported, currentText } = useSpeech();
   // Always read from React Query cache so chat history updates after each message
   const { data: dbPlots = [] } = useQuery<DbPlot[]>({ queryKey: ["/api/plots"] });
   const plot = dbPlots.find(p => p.id === plotId) ?? null;
@@ -394,6 +395,22 @@ function AIAnalysisDialog({
                 <h4 className="text-xs font-bold text-primary uppercase tracking-wider">
                   Análise Agronômica (Groq AI)
                 </h4>
+                {isSupported && plot.analysis && !analyzeMutation.isPending && (
+                  <button
+                    onClick={() => isSpeaking && currentText === plot.analysis ? stop() : speak(plot.analysis!)}
+                    className={cn(
+                      "ml-auto flex items-center gap-1.5 text-[10px] font-bold px-3 py-1 rounded-full border transition-all shadow-sm",
+                      isSpeaking && currentText === plot.analysis
+                        ? "bg-primary/20 text-primary border-primary/30 animate-pulse"
+                        : "bg-white text-slate-500 hover:text-primary hover:border-primary/30 border-slate-200"
+                    )}
+                  >
+                    {isSpeaking && currentText === plot.analysis
+                      ? <><VolumeX className="w-3 h-3" /> Parar</>
+                      : <><Volume2 className="w-3 h-3" /> Ouvir Relatório</>
+                    }
+                  </button>
+                )}
               </div>
 
               {analyzeMutation.isPending ? (
