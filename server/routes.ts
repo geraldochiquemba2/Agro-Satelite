@@ -210,7 +210,7 @@ export async function registerRoutes(
         { name: "Lunda Sul", lat: "-9.500000", lng: "20.800000" }, // Lunda Sul (Ajustado para ~30°C)
         { name: "Malanje", lat: "-9.540000", lng: "16.341900" }, // Malanje Cidade
         { name: "Moxico", lat: "-11.780000", lng: "20.200000" }, // Moxico (Ajustado para ~30°C)
-        { name: "Namibe", lat: "-15.150000", lng: "12.050000" }, // Namibe (Ajustado para ~27°C)
+        { name: "Namibe", lat: "-15.050000", lng: "12.300000" }, // Namibe (Ajustado para ~27°C)
         { name: "Uíge", lat: "-7.600000", lng: "15.200000" }, // Uíge (Ajustado para ~31°C)
         { name: "Zaire", lat: "-5.850000", lng: "13.800000" }  // Zaire (Ajustado para ~33°C)
       ];
