@@ -18,9 +18,9 @@ export interface IStorage {
   sessionStore: session.Store;
 
   // Plot methods
-  getPlots(): Promise<Plot[]>;
+  getPlotsByUser(userId: string): Promise<Plot[]>;
   getPlot(id: string): Promise<Plot | undefined>;
-  createPlot(plot: InsertPlot): Promise<Plot>;
+  createPlot(plot: InsertPlot & { userId: string }): Promise<Plot>;
   updatePlotAnalysis(id: string, analysis: string): Promise<Plot>;
   updatePlotChatHistory(id: string, history: string): Promise<Plot>;
   deletePlot(id: string): Promise<void>;
@@ -50,8 +50,8 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async getPlots(): Promise<Plot[]> {
-    return await db.select().from(plots);
+  async getPlotsByUser(userId: string): Promise<Plot[]> {
+    return await db.select().from(plots).where(eq(plots.userId, userId));
   }
 
   async getPlot(id: string): Promise<Plot | undefined> {
@@ -59,7 +59,7 @@ export class DatabaseStorage implements IStorage {
     return plot;
   }
 
-  async createPlot(insertPlot: InsertPlot): Promise<Plot> {
+  async createPlot(insertPlot: InsertPlot & { userId: string }): Promise<Plot> {
     const [plot] = await db.insert(plots).values(insertPlot).returning();
     return plot;
   }

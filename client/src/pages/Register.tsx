@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/use-auth";
 export function Register() {
     const [, setLocation] = useLocation();
     const { registerMutation, user } = useAuth();
+    const [name, setName] = useState('');
     const [phone, setPhone] = useState('');
     const [password, setPassword] = useState('');
 
@@ -18,7 +19,7 @@ export function Register() {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        registerMutation.mutate({ phone, password });
+        registerMutation.mutate({ name, phone, password });
     };
 
     return (
@@ -45,6 +46,21 @@ export function Register() {
                     <p className="text-gray-500 mb-8 leading-relaxed">Junte-se à revolução agrícola em Angola. Crie sua conta gratuita em menos de um minuto.</p>
 
                     <form onSubmit={handleSubmit} className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-bold text-gray-700 mb-2">Nome Completo</label>
+                            <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400"><User size={20} /></div>
+                                <input
+                                    type="text"
+                                    value={name}
+                                    onChange={(e) => setName(e.target.value)}
+                                    className="block w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-accent outline-none text-brand-black transition-all"
+                                    placeholder="Como prefere ser chamado?"
+                                    required
+                                />
+                            </div>
+                        </div>
+
                         <div>
                             <label className="block text-sm font-bold text-gray-700 mb-2">Telemóvel</label>
                             <div className="relative">

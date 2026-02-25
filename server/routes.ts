@@ -14,17 +14,24 @@ export async function registerRoutes(
   // prefix all routes with /api
 
   // API Routes for Plots
-  app.get("/api/plots", async (_req, res) => {
-    const plots = await storage.getPlots();
+  app.get("/api/plots", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const plots = await storage.getPlotsByUser(req.user!.id);
     res.json(plots);
   });
 
   app.post("/api/plots", async (req, res) => {
-    const plot = await storage.createPlot(req.body);
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const plot = await storage.createPlot({ ...req.body, userId: req.user!.id });
     res.json(plot);
   });
 
   app.delete("/api/plots/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const plot = await storage.getPlot(req.params.id);
+    if (!plot || plot.userId !== req.user!.id) {
+      return res.status(404).json({ message: "Talhão não encontrado ou acesso negado" });
+    }
     await storage.deletePlot(req.params.id);
     res.status(204).end();
   });
@@ -38,6 +45,10 @@ export async function registerRoutes(
       if (req.params.id !== "fake-id") {
         const plot = await storage.getPlot(req.params.id);
         if (plot) {
+          // Check ownership if authenticated
+          if (req.isAuthenticated() && plot.userId !== req.user!.id) {
+            return res.status(403).json({ message: "Acesso negado ao talhão" });
+          }
           lat = plot.lat;
           lng = plot.lng;
         }
@@ -61,9 +72,12 @@ export async function registerRoutes(
 
   // AI Analysis Route with Groq
   app.post("/api/plots/:id/analyze", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
       const plot = await storage.getPlot(req.params.id);
-      if (!plot) return res.status(404).json({ message: "Talhão não encontrado" });
+      if (!plot || plot.userId !== req.user!.id) {
+        return res.status(404).json({ message: "Talhão não encontrado ou acesso negado" });
+      }
 
       const weather = await getPlotWeather(plot.lat, plot.lng);
       const soil = estimateSoilTelemetry(weather);
@@ -115,10 +129,13 @@ export async function registerRoutes(
 
   // Plot-specific Chat Route
   app.post("/api/plots/:id/chat", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
       const { message } = req.body;
       const plot = await storage.getPlot(req.params.id);
-      if (!plot) return res.status(404).json({ message: "Talhão não encontrado" });
+      if (!plot || plot.userId !== req.user!.id) {
+        return res.status(404).json({ message: "Talhão não encontrado ou acesso negado" });
+      }
 
       const history = plot.chatHistory ? JSON.parse(plot.chatHistory) : [];
 

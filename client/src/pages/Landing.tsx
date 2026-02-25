@@ -15,9 +15,11 @@ import {
 } from 'lucide-react';
 
 import { useLocation } from "wouter";
+import { useAuth } from '@/hooks/use-auth';
 
 export function Landing() {
     const [, setLocation] = useLocation();
+    const { user } = useAuth();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [scrolled, setScrolled] = useState(false);
 
@@ -51,12 +53,23 @@ export function Landing() {
                             <a href="#diferenciais" className={`font-medium transition-colors hover:text-brand-accent ${scrolled ? 'text-brand-secondary' : 'text-white/90 drop-shadow-sm'}`}>Tecnologia</a>
 
                             <div className="flex items-center gap-4 ml-6 border-l border-gray-300/30 pl-6">
-                                <button onClick={() => setLocation('/login')} className={`font-semibold transition-colors hover:text-brand-accent ${scrolled ? 'text-brand-primary' : 'text-white drop-shadow-sm'}`}>
-                                    Login
-                                </button>
-                                <button onClick={() => setLocation('/register')} className={`px-6 py-2.5 rounded-full font-semibold transition-all shadow-md hover:shadow-lg ${scrolled ? 'bg-brand-primary text-white hover:bg-brand-secondary shadow-brand-primary/20' : 'bg-brand-accent text-white hover:bg-white hover:text-brand-accent shadow-black/10'}`}>
-                                    Cadastrar
-                                </button>
+                                {user ? (
+                                    <button
+                                        onClick={() => setLocation('/dashboard')}
+                                        className={`px-6 py-2.5 rounded-full font-bold transition-all shadow-md hover:shadow-lg flex items-center gap-2 ${scrolled ? 'bg-brand-primary text-white hover:bg-brand-secondary' : 'bg-brand-accent text-white hover:bg-white hover:text-brand-accent'}`}
+                                    >
+                                        Perfil <ArrowRight size={18} />
+                                    </button>
+                                ) : (
+                                    <>
+                                        <button onClick={() => setLocation('/login')} className={`font-semibold transition-colors hover:text-brand-accent ${scrolled ? 'text-brand-primary' : 'text-white drop-shadow-sm'}`}>
+                                            Login
+                                        </button>
+                                        <button onClick={() => setLocation('/register')} className={`px-6 py-2.5 rounded-full font-semibold transition-all shadow-md hover:shadow-lg ${scrolled ? 'bg-brand-primary text-white hover:bg-brand-secondary shadow-brand-primary/20' : 'bg-brand-accent text-white hover:bg-white hover:text-brand-accent shadow-black/10'}`}>
+                                            Cadastrar
+                                        </button>
+                                    </>
+                                )}
                             </div>
                         </div>
 
@@ -80,12 +93,20 @@ export function Landing() {
                             <a href="#solucao" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-3 text-lg font-medium text-brand-secondary hover:text-brand-primary hover:bg-blue-50/50 rounded-xl transition-colors">A Solução</a>
                             <a href="#diferenciais" onClick={() => setIsMobileMenuOpen(false)} className="block px-4 py-3 text-lg font-medium text-brand-secondary hover:text-brand-primary hover:bg-blue-50/50 rounded-xl transition-colors">Tecnologia</a>
                             <div className="pt-6 mt-4 border-t border-gray-100 flex flex-col gap-3">
-                                <button onClick={() => { setIsMobileMenuOpen(false); setLocation('/login'); }} className="w-full text-brand-primary border-2 border-brand-primary/20 font-bold py-3.5 rounded-xl hover:bg-brand-primary/5 transition-colors">
-                                    Acessar Conta
-                                </button>
-                                <button onClick={() => { setIsMobileMenuOpen(false); setLocation('/register'); }} className="w-full bg-brand-primary text-brand-white font-bold py-3.5 rounded-xl shadow-lg shadow-brand-primary/20">
-                                    Criar Conta Grátis
-                                </button>
+                                {user ? (
+                                    <button onClick={() => { setIsMobileMenuOpen(false); setLocation('/dashboard'); }} className="w-full bg-brand-primary text-brand-white font-bold py-3.5 rounded-xl shadow-lg shadow-brand-primary/20">
+                                        Ir para o Painel
+                                    </button>
+                                ) : (
+                                    <>
+                                        <button onClick={() => { setIsMobileMenuOpen(false); setLocation('/login'); }} className="w-full text-brand-primary border-2 border-brand-primary/20 font-bold py-3.5 rounded-xl hover:bg-brand-primary/5 transition-colors">
+                                            Acessar Conta
+                                        </button>
+                                        <button onClick={() => { setIsMobileMenuOpen(false); setLocation('/register'); }} className="w-full bg-brand-primary text-brand-white font-bold py-3.5 rounded-xl shadow-lg shadow-brand-primary/20">
+                                            Criar Conta Grátis
+                                        </button>
+                                    </>
+                                )}
                             </div>
                         </div>
                     </div>

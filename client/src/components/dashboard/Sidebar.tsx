@@ -8,8 +8,10 @@ import {
     LayoutDashboard,
     FileText,
     PieChart,
-    ChevronRight
+    ChevronRight,
+    Loader2
 } from 'lucide-react';
+import { useAuth } from '@/hooks/use-auth';
 
 interface SidebarProps {
     activeTab: 'climate' | 'plots';
@@ -18,6 +20,18 @@ interface SidebarProps {
 }
 
 export function Sidebar({ activeTab, setActiveTab, onNavigate }: SidebarProps) {
+    const { user, logoutMutation } = useAuth();
+
+    // Initials from name
+    const getInitials = (name: string) => {
+        return name
+            .split(' ')
+            .map(n => n[0])
+            .join('')
+            .toUpperCase()
+            .substring(0, 2);
+    };
+
     return (
         <aside className="w-72 bg-white flex flex-col border-r border-gray-200 z-50 shadow-sm relative h-screen">
             {/* Logo Area */}
@@ -62,17 +76,18 @@ export function Sidebar({ activeTab, setActiveTab, onNavigate }: SidebarProps) {
                 </button>
                 <div className="flex items-center gap-3 group px-4 py-3 rounded-xl hover:bg-white border text-left border-transparent hover:border-gray-200 transition-all cursor-pointer shadow-sm">
                     <div className="w-10 h-10 rounded-full bg-brand-dark flex items-center justify-center text-white font-bold text-sm shrink-0">
-                        JA
+                        {user ? getInitials(user.name) : '??'}
                     </div>
                     <div className="overflow-hidden">
-                        <p className="text-sm font-bold text-gray-900 leading-tight truncate">João Almeida</p>
-                        <p className="text-[11px] text-brand-primary font-bold truncate mt-0.5">Admin • Fazenda Esp.</p>
+                        <p className="text-sm font-bold text-gray-900 leading-tight truncate">{user?.name || 'Carregando...'}</p>
+                        <p className="text-[11px] text-brand-primary font-bold truncate mt-0.5">Membro • Angola</p>
                     </div>
                 </div>
                 <button
-                    onClick={() => onNavigate('landing')}
-                    className="mt-4 flex items-center justify-center gap-2 w-full py-3 text-red-500 font-bold hover:bg-red-50 rounded-xl transition-colors border border-transparent hover:border-red-100">
-                    <LogOut size={16} /> Sair
+                    onClick={() => logoutMutation.mutate()}
+                    disabled={logoutMutation.isPending}
+                    className="mt-4 flex items-center justify-center gap-2 w-full py-3 text-red-500 font-bold hover:bg-red-50 rounded-xl transition-colors border border-transparent hover:border-red-100 disabled:opacity-50">
+                    {logoutMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogOut size={16} />} Sair
                 </button>
             </div>
         </aside>

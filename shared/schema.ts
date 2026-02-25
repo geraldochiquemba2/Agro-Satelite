@@ -5,20 +5,24 @@ import { z } from "zod";
 
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
   phone: text("phone").notNull().unique(),
   password: text("password").notNull(),
 });
 
 export const insertUserSchema = createInsertSchema(users).extend({
+  name: z.string().min(2, "O nome deve ter pelo menos 2 caracteres"),
   phone: z.string().regex(/^9[0-9]{8}$/, "Número de telemóvel inválido. Use o formato 9xxxxxxxx."),
   password: z.string().min(6, "A senha deve ter pelo menos 6 caracteres"),
 }).pick({
+  name: true,
   phone: true,
   password: true,
 });
 
 export const plots = pgTable("plots", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(), // Relacionamento com usuário
   name: text("name").notNull(),
   crop: text("crop").notNull(),
   area: text("area").notNull(),

@@ -1112,14 +1112,29 @@ export default function Dashboard() {
                           </div>
                         </div>
 
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="w-full mt-2 group-hover:bg-primary group-hover:text-white transition-colors"
-                          onClick={() => viewOnMap(plot)}
-                        >
-                          Mapear Terreno
-                        </Button>
+                        <div className="flex gap-2 mt-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 group-hover:bg-primary group-hover:text-white transition-colors"
+                            onClick={() => viewOnMap(plot)}
+                          >
+                            <Eye className="w-4 h-4 mr-2" /> Detalhes
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-rose-500 border-rose-100 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (confirm("Tem certeza que deseja excluir este talhão?")) {
+                                removePlot(plot.id);
+                              }
+                            }}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </CardContent>
                     </Card>
                   ))}
