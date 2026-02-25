@@ -74,7 +74,19 @@ export function useSpeech(): UseSpeechReturn {
             // Stop any current speech
             window.speechSynthesis.cancel();
 
-            const utterance = new SpeechSynthesisUtterance(text);
+            // Sanitize text: Remove Markdown symbols like **, *, __, _, #, etc.
+            const sanitizedText = text
+                .replace(/\*+/g, "") // Remove asterisks
+                .replace(/#+/g, "")  // Remove hashtags
+                .replace(/_+/g, " ") // Replace underscores with space
+                .replace(/`+/g, "")  // Remove backticks
+                .replace(/\[/g, "")  // Remove brackets
+                .replace(/\]/g, "")
+                .replace(/\(/g, "")  // Remove parentheses (metadata)
+                .replace(/\)/g, "")
+                .replace(/\n+/g, " "); // Replace newlines with space for smoother flow
+
+            const utterance = new SpeechSynthesisUtterance(sanitizedText);
             utterance.rate = 0.92;
             utterance.pitch = 1.0;
             utterance.volume = 1.0;
