@@ -191,6 +191,179 @@ function MapController({ center, zoom }: { center: [number, number], zoom: numbe
   return null;
 }
 
+function AIChatBox({ plot, chatMutation, analyzeMutation }: { plot: Plot, chatMutation: any, analyzeMutation: any }) {
+  const [chatMessage, setChatMessage] = useState("");
+  const history = plot.chatHistory ? JSON.parse(plot.chatHistory) : [];
+
+  return (
+    <div className="space-y-4">
+      <h4 className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2">
+        <MessageSquare className="w-3 h-3" /> Chat Agrosatelite IA
+      </h4>
+
+      <div className="max-h-[300px] overflow-y-auto space-y-3 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800 custom-scrollbar">
+        {history.length > 0 ? (
+          history.map((m: any, idx: number) => (
+            <div key={idx} className={cn(
+              "p-3 rounded-2xl text-[11px] max-w-[90%] shadow-sm",
+              m.role === "user"
+                ? "bg-primary text-white ml-auto"
+                : "bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-100 dark:border-slate-700"
+            )}>
+              <span className={cn(
+                "font-bold block mb-1 uppercase text-[9px] opacity-70",
+                m.role === "user" ? "text-white/80" : "text-primary"
+              )}>
+                {m.role === "user" ? "Produtor" : "AgriSat IA"}
+              </span>
+              {m.content}
+            </div>
+          ))
+        ) : (
+          <div className="py-8 text-center space-y-2">
+            <div className="bg-primary/10 w-10 h-10 rounded-full flex items-center justify-center mx-auto text-primary">
+              <MessageSquare className="w-5 h-5" />
+            </div>
+            <p className="text-[10px] text-slate-400 italic">
+              Inicie uma conversa técnica sobre este talhão...
+            </p>
+          </div>
+        )}
+        {chatMutation.isPending && (
+          <div className="bg-white dark:bg-slate-800 p-3 rounded-2xl text-[11px] max-w-[80%] shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-2">
+            <Loader2 className="w-3 h-3 animate-spin text-primary" />
+            <span className="animate-pulse">Analisando dados...</span>
+          </div>
+        )}
+      </div>
+
+      <div className="flex gap-2">
+        <Input
+          placeholder="Dúvidas sobre plantio, solo ou clima?"
+          className="text-xs h-10 rounded-xl border-slate-200 dark:border-slate-800"
+          value={chatMessage}
+          onChange={(e) => setChatMessage(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && chatMessage) {
+              chatMutation.mutate({ id: plot.id, message: chatMessage });
+              setChatMessage("");
+            }
+          }}
+        />
+        <Button
+          size="icon"
+          className="h-10 w-10 shrink-0 rounded-xl shadow-lg shadow-primary/20"
+          disabled={!chatMessage || chatMutation.isPending}
+          onClick={() => {
+            chatMutation.mutate({ id: plot.id, message: chatMessage });
+            setChatMessage("");
+          }}
+        >
+          <Send className="w-4 h-4" />
+        </Button>
+      </div>
+
+      <Button
+        onClick={() => analyzeMutation.mutate(plot.id)}
+        variant="ghost"
+        className="w-full gap-2 text-[10px] text-slate-400 hover:text-primary hover:bg-primary/5 rounded-lg"
+        disabled={analyzeMutation.isPending}
+      >
+        {analyzeMutation.isPending ? <RefreshCw className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+        Forçar Nova Análise de Satélite
+      </Button>
+    </div>
+  );
+}
+
+function AIAnalysisDialog({
+  open,
+  onClose,
+  plot,
+  chatMutation,
+  analyzeMutation
+}: {
+  open: boolean,
+  onClose: () => void,
+  plot: DbPlot | null,
+  chatMutation: any,
+  analyzeMutation: any
+}) {
+  if (!plot) return null;
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden border-0 shadow-2xl rounded-3xl">
+        <div className="bg-gradient-to-br from-slate-900 to-primary/20 p-6 text-white relative">
+          <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+            <Activity className="w-24 h-24" />
+          </div>
+          <DialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 bg-primary/20 rounded-xl backdrop-blur-md">
+                <Sprout className="w-6 h-6 text-primary" />
+              </div>
+              <div>
+                <DialogTitle className="text-xl font-heading font-bold">Relatório de IA Ativado</DialogTitle>
+                <DialogDescription className="text-white/60 text-xs">
+                  Analisando {plot.name} ({plot.crop}) em tempo real.
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+        </div>
+
+        <div className="p-6 bg-white dark:bg-slate-900">
+          <div className="space-y-6">
+            <div className="p-4 bg-primary/5 rounded-2xl border border-primary/20 relative overflow-hidden group">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="p-1.5 bg-primary/10 rounded-lg">
+                  <Activity className="w-4 h-4 text-primary" />
+                </div>
+                <h4 className="text-xs font-bold text-primary uppercase tracking-wider">
+                  Análise Agronômica (Groq AI)
+                </h4>
+              </div>
+
+              {analyzeMutation.isPending ? (
+                <div className="space-y-2 py-4">
+                  <div className="h-2 w-full bg-primary/20 animate-pulse rounded" />
+                  <div className="h-2 w-3/4 bg-primary/20 animate-pulse rounded" />
+                  <div className="h-2 w-5/6 bg-primary/20 animate-pulse rounded" />
+                  <p className="text-[10px] text-center text-primary/60 font-medium animate-pulse mt-4">
+                    Sincronizando com satélite e gerando insights...
+                  </p>
+                </div>
+              ) : (
+                <div className="text-[13px] text-slate-700 dark:text-slate-300 leading-relaxed max-h-[150px] overflow-y-auto custom-scrollbar pr-2">
+                  {plot.analysis || "A aguardar dados detalhados..."}
+                </div>
+              )}
+            </div>
+
+            <AIChatBox
+              plot={{
+                ...plot,
+                area: Number(plot.area),
+                health: Number(plot.health),
+                boundaryPoints: plot.boundaryPoints ? JSON.parse(plot.boundaryPoints) : undefined
+              } as Plot}
+              chatMutation={chatMutation}
+              analyzeMutation={analyzeMutation}
+            />
+          </div>
+        </div>
+
+        <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 flex justify-center">
+          <Button variant="ghost" onClick={onClose} className="text-xs text-slate-500 hover:text-slate-900 uppercase font-bold tracking-widest">
+            Fechar Diálogo
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function Dashboard() {
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [location, setLocation] = useLocation();
@@ -209,6 +382,8 @@ export default function Dashboard() {
   const [mapFocus, setMapFocus] = useState<{ center: [number, number], zoom: number }>({ center: [-11.2027, 17.8739], zoom: 6 });
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [activeWeatherLayer, setActiveWeatherLayer] = useState<string | null>(null);
+  const [isAnalysisDialogOpen, setIsAnalysisDialogOpen] = useState(false);
+  const [plotForAnalysis, setPlotForAnalysis] = useState<DbPlot | null>(null);
 
   const weatherLayers = [
     { id: "precipitation_new", label: "Chuva", icon: <CloudRain className="w-3 h-3" />, color: "text-blue-400" },
@@ -234,14 +409,22 @@ export default function Dashboard() {
       if (!res.ok) throw new Error(await res.text());
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data: DbPlot) => {
       queryClient.invalidateQueries({ queryKey: ["/api/plots"] });
       setNewPlot({ name: "", crop: "Soja", area: "", lat: "", lng: "", altitude: "", analysis: "" });
       setPolygonPoints([]);
       setIsAddDialogOpen(false);
+
+      // Auto-trigger analysis and open dialog
+      setPlotForAnalysis(data);
+      setIsAnalysisDialogOpen(true);
+      if (data.id) {
+        analyzeMutation.mutate(data.id);
+      }
+
       toast({
         title: "Sucesso!",
-        description: "Talhão registrado com telemetria.",
+        description: "Talhão registrado. Iniciando análise técnica...",
       });
     },
     onError: (error: Error) => {
@@ -1151,75 +1334,11 @@ export default function Dashboard() {
                               )}
 
                               {dbPlots.find(p => p.name === newPlot.name && p.lat === newPlot.lat) && (
-                                <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-800">
-                                  <h4 className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2">
-                                    <MessageSquare className="w-3 h-3" /> Chat Agrosatelite IA
-                                  </h4>
-
-                                  <div className="max-h-[200px] overflow-y-auto space-y-3 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-200 dark:border-slate-800">
-                                    {plots.find(p => p.name === newPlot.name)?.chatHistory ? (
-                                      JSON.parse(plots.find(p => p.name === newPlot.name)!.chatHistory!).map((m: any, idx: number) => (
-                                        <div key={idx} className={cn(
-                                          "p-2 rounded-lg text-[11px] max-w-[90%]",
-                                          m.role === "user" ? "bg-primary/10 ml-auto text-primary-dark" : "bg-white dark:bg-slate-800 shadow-sm border border-slate-100"
-                                        )}>
-                                          <span className="font-bold block mb-1 opacity-50 uppercase text-[9px]">
-                                            {m.role === "user" ? "Produtor" : "AgriSat IA"}
-                                          </span>
-                                          {m.content}
-                                        </div>
-                                      ))
-                                    ) : (
-                                      <p className="text-[10px] text-slate-400 text-center py-4 italic">
-                                        Inicie uma conversa técnica sobre este talhão...
-                                      </p>
-                                    )}
-                                    {chatMutation.isPending && (
-                                      <div className="bg-white dark:bg-slate-800 p-2 rounded-lg text-[11px] max-w-[90%] shadow-sm border border-slate-100 animate-pulse">
-                                        Digitando...
-                                      </div>
-                                    )}
-                                  </div>
-
-                                  <div className="flex gap-2">
-                                    <Input
-                                      placeholder="Pergunte sobre o solo, clima ou plantio..."
-                                      className="text-xs h-9"
-                                      value={chatMessage}
-                                      onChange={(e) => setChatMessage(e.target.value)}
-                                      onKeyDown={(e) => {
-                                        if (e.key === "Enter" && chatMessage) {
-                                          const p = dbPlots.find(idx => idx.name === newPlot.name);
-                                          if (p) chatMutation.mutate({ id: p.id, message: chatMessage });
-                                        }
-                                      }}
-                                    />
-                                    <Button
-                                      size="icon"
-                                      className="h-9 w-9 shrink-0"
-                                      disabled={!chatMessage || chatMutation.isPending}
-                                      onClick={() => {
-                                        const p = dbPlots.find(idx => idx.name === newPlot.name);
-                                        if (p) chatMutation.mutate({ id: p.id, message: chatMessage });
-                                      }}
-                                    >
-                                      <Send className="w-4 h-4" />
-                                    </Button>
-                                  </div>
-
-                                  <Button
-                                    onClick={() => {
-                                      const p = dbPlots.find(idx => idx.name === newPlot.name);
-                                      if (p) analyzeMutation.mutate(p.id);
-                                    }}
-                                    variant="ghost"
-                                    className="w-full gap-2 text-[10px] text-slate-400 hover:text-primary"
-                                    disabled={analyzeMutation.isPending}
-                                  >
-                                    {analyzeMutation.isPending ? <Activity className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
-                                    Atualizar Análise Base
-                                  </Button>
-                                </div>
+                                <AIChatBox
+                                  plot={plots.find(p => p.name === newPlot.name)!}
+                                  chatMutation={chatMutation}
+                                  analyzeMutation={analyzeMutation}
+                                />
                               )}
                             </div>
                           </div>
@@ -1325,6 +1444,14 @@ export default function Dashboard() {
           </div>
         </div>
       </main >
+
+      <AIAnalysisDialog
+        open={isAnalysisDialogOpen}
+        onClose={() => setIsAnalysisDialogOpen(false)}
+        plot={plotForAnalysis}
+        chatMutation={chatMutation}
+        analyzeMutation={analyzeMutation}
+      />
     </div >
   );
 }
