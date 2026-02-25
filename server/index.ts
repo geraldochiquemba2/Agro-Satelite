@@ -88,30 +88,44 @@ app.use((req, res, next) => {
 
   // ALWAYS serve the app on the port specified in the environment variable PORT
   // Other ports are firewalled. Default to 5000 if not specified.
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
   const port = parseInt(process.env.PORT || "5000", 10);
-  httpServer.listen(
-    {
-      port,
-      host: "0.0.0.0",
-      reusePort: process.platform === "linux" ? true : undefined,
-    },
-    () => {
-      log(`serving on port ${port}`);
 
-      // Keep-alive logic for Render Free Tier
-      const externalUrl = process.env.RENDER_EXTERNAL_URL;
-      if (externalUrl) {
-        log(`Keep-alive active for: ${externalUrl}`);
-        setInterval(() => {
-          https.get(externalUrl, (res) => {
-            log(`Keep-alive ping sent to ${externalUrl} - Status: ${res.statusCode}`);
-          }).on('error', (err) => {
-            log(`Keep-alive ping failed: ${err.message}`, "error");
-          });
-        }, 10 * 60 * 1000); // 10 minutes
-      }
-    },
-  );
+  process.on("uncaughtException", (err) => {
+    log(`Uncaught Exception: ${err.message}`, "error");
+    console.error(err);
+    process.exit(1);
+  });
+
+  process.on("unhandledRejection", (reason, promise) => {
+    log(`Unhandled Rejection at: ${promise} reason: ${reason}`, "error");
+    process.exit(1);
+  });
+
+  try {
+    httpServer.listen(
+      {
+        port,
+        host: "0.0.0.0",
+      },
+      () => {
+        log(`serving on port ${port}`);
+
+        // Keep-alive logic for Render Free Tier
+        const externalUrl = process.env.RENDER_EXTERNAL_URL;
+        if (externalUrl) {
+          log(`Keep-alive active for: ${externalUrl}`);
+          setInterval(() => {
+            https.get(externalUrl, (res) => {
+              log(`Keep-alive ping sent to ${externalUrl} - Status: ${res.statusCode}`);
+            }).on('error', (err) => {
+              log(`Keep-alive ping failed: ${err.message}`, "error");
+            });
+          }, 10 * 60 * 1000); // 10 minutes
+        }
+      },
+    );
+  } catch (error: any) {
+    log(`Falha crítica ao iniciar servidor: ${error.message}`, "error");
+    process.exit(1);
+  }
 })();
