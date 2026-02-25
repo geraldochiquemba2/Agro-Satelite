@@ -74,7 +74,7 @@ export function GlobalAIChat({ weatherContext = [] }: GlobalAIChatProps) {
     }, [history, isOpen]);
 
     return (
-        <div className="fixed bottom-6 right-6 z-[5000]">
+        <div className="fixed bottom-4 right-3 sm:bottom-6 sm:right-6 z-[5000]">
             <AnimatePresence>
                 {isOpen && (
                     <motion.div
@@ -83,7 +83,7 @@ export function GlobalAIChat({ weatherContext = [] }: GlobalAIChatProps) {
                         exit={{ opacity: 0, scale: 0.95, y: 20 }}
                         className="mb-4"
                     >
-                        <Card className="w-[380px] h-[520px] shadow-2xl border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl">
+                        <Card className="w-[calc(100vw-1.5rem)] sm:w-[380px] h-[480px] sm:h-[520px] shadow-2xl border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl">
                             <CardHeader className="p-4 bg-gradient-to-r from-primary to-primary/80 text-white flex flex-row items-center justify-between space-y-0">
                                 <div className="flex items-center gap-2">
                                     <div className="p-1.5 bg-white/20 rounded-lg">

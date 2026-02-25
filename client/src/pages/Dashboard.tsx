@@ -622,18 +622,22 @@ export default function Dashboard() {
     deletePlotMutation.mutate(id);
   };
 
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
   return (
     <div className="flex h-screen bg-brand-white font-sans overflow-hidden">
       <Sidebar
         activeTab={activeTab as 'climate' | 'plots'}
         setActiveTab={(tab) => setLocation(`/dashboard/${tab}`)}
         onNavigate={(view) => setLocation(view === 'dashboard' ? '/dashboard' : view === 'landing' ? '/' : `/${view}`)}
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
       />
 
-      <main className="flex-1 flex flex-col h-screen overflow-hidden">
-        <Topbar />
+      <main className="flex-1 flex flex-col h-screen overflow-hidden min-w-0">
+        <Topbar onMenuClick={() => setIsSidebarOpen(prev => !prev)} />
 
-        <div className="flex-1 overflow-y-auto bg-gray-50/50 p-8 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto bg-gray-50/50 p-4 md:p-8 custom-scrollbar">
           <div className="max-w-7xl mx-auto space-y-8">
 
             {activeTab === "climate" && (
@@ -819,7 +823,7 @@ export default function Dashboard() {
 
                     <div className="mt-8">
                       <h4 className="font-bold mb-4 text-sm">Tendência (Próximos dias)</h4>
-                      <div className="grid grid-cols-7 gap-3">
+                      <div className="grid grid-cols-4 sm:grid-cols-7 gap-2 md:gap-3">
                         {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'].map((day, i) => (
                           <div key={day} className="text-center p-3 bg-white/5 rounded-xl border border-white/5">
                             <div className="text-[10px] opacity-60 mb-2">{day}</div>
@@ -1102,7 +1106,7 @@ export default function Dashboard() {
                   </Dialog>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {plots.map(plot => (
                     <Card key={plot.id} className="glass-panel overflow-hidden group relative">
                       <div className="h-32 bg-slate-200 relative overflow-hidden">
